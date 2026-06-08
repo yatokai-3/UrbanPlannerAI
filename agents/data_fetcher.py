@@ -166,7 +166,7 @@ def generate_research_queries(user_query: str) -> dict:
 question_return = generate_research_queries(
     "Reduce traffic congestion in Bangalore."
 )
-
+print('f')
 # print(json.dumps(question_return, indent=3))
 
 all_questions=[]
