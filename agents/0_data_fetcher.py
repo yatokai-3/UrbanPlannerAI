@@ -1,177 +1,95 @@
-from crewai.tools import tool
-from groq import Groq
+"""DATA COLLECTOR AGENT - Gathers city information"""
 
-import os
 import json
-import requests
-from bs4 import BeautifulSoup
-import fitz
-import requests
-import tempfile
-
-
-class ResearchStore:
-
-    def __init__(self):
-
-        self.wikipedia = {}
-        self.serper = {}
-        self.documents = []
-        self.facts = []
-
-    def add_wikipedia(self, query, results):
-
-        self.wikipedia[query] = results
-
-        self.documents.extend(results)
-
-    def add_serper(self, query, results):
-
-        self.serper[query] = results
-
-    def add_documents(self, docs):
-
-        self.documents.extend(docs)
-
-    def add_facts(self,facts):
-        self.facts.extend(facts)
-
-    # Debug Helpers
-
-    def summary(self):
-
-        return {
-            "wikipedia_queries":
-                len(self.wikipedia),
-
-            "serper_queries":
-                len(self.serper),
-
-            "documents":
-                len(self.documents),
-
-            "facts":
-                len(self.facts)
-        }
-
-
-client = Groq(
-    api_key=os.environ["GROQ_API_KEY"]
+from tools.zero_wikipedia_tool import search_wikipedia
+from tools.zero_serper_tool import search_serper, fetch_serper_content
+from tools.zero_extraction_tool import (
+    extract_key_facts,
+    generate_research_queries,
+    extract_city_name
 )
+from models.state import ResearchStore
 
-def generate_research_queries(user_query: str) -> dict:
+
+def run_data_collector_agent(user_query: str) -> ResearchStore:
     """
-    Converts a complex urban transport planning query
-    into focused research/search queries.
-
-    Args:
-        user_query (str): User's transport planning request
-
+    Agent 1: Collects data about a city.
+    
+    Flow:
+    1. Parse user query → extract city name + research queries
+    2. Search Wikipedia for city profile
+    3. Search Serper for specific information
+    4. Fetch full webpage content
+    5. Extract key facts using LLM
+    6. Store everything
+    
     Returns:
-        dict: Structured research queries
+        ResearchStore with all collected data
     """
-
-    SYSTEM_PROMPT = """
-        You are an urban transport research planner and information retrieval expert.
-
-        Your task is to convert a user's urban transport planning request into highly effective search queries for data collection.
-
-        The generated queries will be used with:
-        - Wikipedia Search
-        - Google Search (Serper)
-
-        Rules:
-
-        1. Generate search-engine friendly queries.
-        2. Always include the city name when possible.
-        Example:
-        - "Lucknow population growth"
-        - NOT "population growth"
-
-        3. Prioritize queries that are likely to return:
-        - numerical values
-        - statistics
-        - percentages
-        - growth rates
-        - ridership figures
-        - budgets
-        - project costs
-        - transport indicators
-        - official planning data
-        - government reports
-
-        4. Focus on information needed for transport planning:
-
-        - population and demographics
-        - population growth and future population projections
-        - employment and economic activity
-        - land use patterns and major activity centers
-        - transport infrastructure
-        - public transport performance and ridership
-        - travel demand and commuting patterns
-        - transport mode share (modal split)
-        - vehicle ownership and motorization rates
-        - traffic congestion and bottlenecks
-        - sustainability and non-motorized transport
-        - current and planned transport projects
-        - transport policies and mobility initiatives
-
-        5. Avoid vague or ambiguous queries.
-
-        6. Queries should be directly usable in Google or Wikipedia search.
-
-        7. Generate 2 high-quality queries per category.
-
-        Return ONLY valid JSON.
-
-        Output format:
-
-        {
-        "demographics": [],
-        "economics": [],
-        "land_use": [],
-        "transport_infrastructure": [],
-        "mobility_patterns": [],
-        "traffic_congestion": [],
-        "environment_sustainability": [],
-        "policies_projects": [],
-        "financials": []
-        }
-    """
-
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        temperature=0,
-        response_format={"type": "json_object"},
-        messages=[
-            {
-                "role": "system",
-                "content": SYSTEM_PROMPT
-            },
-            {
-                "role": "user",
-                "content": user_query
-            }
-        ]
-    )
-
-    queries = json.loads(
-        response.choices[0].message.content
-    )
     
-
-    return queries
-
-
-question_return = generate_research_queries(
-    "Reduce traffic congestion in Bangalore."
-)
-print('f')
-# print(json.dumps(question_return, indent=3))
-
-all_questions=[]
-
-for key, value in question_return.items():
-    for i in value:
-        all_questions.append(i)
+    print("\n" + "="*60)
+    print("AGENT 1: DATA COLLECTOR - STARTING")
+    print("="*60 + "\n")
     
+    store = ResearchStore()
+    
+    # Step 1: Generate research queries
+    print("📋 Generating research queries...")
+    queries = generate_research_queries(user_query)
+    
+    # Flatten all queries into one list
+    all_questions = []
+    for category, query_list in queries.items():
+        all_questions.extend(query_list)
+    
+    # print("All the generated question: ", all_questions)
+    # print("\n\n")
+    print(f"✓ Generated {len(all_questions)} queries\n")
+    
+    # Step 2: Extract city name
+    print("🏙️ Extracting city name...")
+    city_name = extract_city_name(user_query)
+    print(f"✓ City: {city_name}\n")
+    
+    # Step 3: Search Wikipedia for city profile
+    print(f"🔍 Searching Wikipedia for '{city_name}'...")
+    wiki_results = search_wikipedia(city_name + " city", limit=3)
+    store.add_wikipedia(city_name, wiki_results)
+    print(f"✓ Found {len(wiki_results)} Wikipedia pages\n")
+    
+    # Step 4: Search Serper for each query
+    print(f"🔍 Searching Serper ({len(all_questions)} queries)...")
+    for query in all_questions:
+        print(f"   - {query}")
+        
+        serper_results = search_serper(query, limit=3)
+        store.add_serper(query, serper_results)
+        
+        # Fetch full content
+        docs = fetch_serper_content(serper_results, top_k=3)
+        store.add_documents(docs)
+    
+    print(f"✓ Completed Serper searches\n")
+    
+    # Step 5: Extract key facts
+    print("🧠 Extracting key facts using LLM...")
+    facts = extract_key_facts(store.documents)
+    store.add_facts(facts)
+    print(f"✓ Extracted facts from {len(store.documents)} documents\n")
+    
+    print("="*60)
+    print("AGENT 1: DATA COLLECTOR - COMPLETE")
+    print("="*60)
+    print(store.summary())
+    
+    return store
+
+fir_res=run_data_collector_agent("sustainable plan for banglore")
+
+with open("serper.json","w") as f:
+    json.dump(fir_res.serper , f, indent=2)
+
+with open("facts.json","w") as f:
+    json.dump(fir_res.facts , f, indent=2)
+# After your agent finishes fetching
+
