@@ -1,9 +1,9 @@
 """DATA COLLECTOR AGENT - Gathers city information"""
 
 import json
-from tools.zero_wikipedia_tool import search_wikipedia
-from tools.zero_serper_tool import search_serper, fetch_serper_content
-from tools.zero_extraction_tool import (
+from tools.tool_zero_wikipedia import search_wikipedia
+from tools.tool_zero_serper import search_serper, fetch_serper_content
+from tools.tool_zero_extraction_tool import (
     extract_key_facts,
     generate_research_queries,
     extract_city_name
@@ -84,12 +84,11 @@ def run_data_collector_agent(user_query: str) -> ResearchStore:
     
     return store
 
-fir_res=run_data_collector_agent("sustainable plan for banglore")
+# fir_res=run_data_collector_agent("sustainable plan for banglore")
 
-with open("serper.json","w") as f:
-    json.dump(fir_res.serper , f, indent=2)
 
-with open("facts.json","w") as f:
-    json.dump(fir_res.facts , f, indent=2)
+
+# with open("debug_facts.json","w") as f:
+#     json.dump(fir_res.facts , f, indent=2)
 # After your agent finishes fetching
 

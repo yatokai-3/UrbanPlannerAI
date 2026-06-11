@@ -1,0 +1,41 @@
+{
+  "mobility_patterns": "The city's transport system is dominated by public transport, accounting for 42% of all trips, followed by 2-wheelers at 29%. The average one-way commuting time is 42.45 minutes, covering a distance of 10.84 kms, and an average spending of Rs.2,589 per month on commuting to work. Peak hour travel is a significant factor, with 70.43% of commuters traveling during peak hours, and 43.30% of commuters traveling more than the predicted commute time.",
+  "current_demand": {
+    "total_daily_trips": "6.3 million trips daily",
+    "current_pt_capacity": "Data not available",
+    "unmet_demand": "Data not available",
+    "underserved_areas": "Data not available"
+  },
+  "future_demand": {
+    "population_growth_rate": "3.14%",
+    "expected_trips_in_2030": "Data not available",
+    "expected_trips_in_2035": "Data not available",
+    "motorization_increase": "Data not available"
+  },
+  "capacity_gaps": {
+    "trips_not_served": "Data not available",
+    "areas_without_pt": "Data not available",
+    "worst_times": "Peak hours",
+    "example": "Current buses serve a significant portion of the population, but data on exact numbers is not available"
+  },
+  "bottlenecks": [
+    {
+      "location": "Silk Board junction to Electronic City",
+      "reason": "Geography and limited roads",
+      "severity": "High",
+      "economic_cost": "Data not available"
+    }
+  ],
+  "priority_corridors": [
+    {
+      "origin": "Data not available",
+      "destination": "Data not available",
+      "distance": "Data not available",
+      "daily_demand": "Data not available",
+      "importance": "Data not available",
+      "current_congestion": "Data not available"
+    }
+  ],
+  "pt_deficiencies": "The city has a well-established infrastructure in terms of connectivity, but there are still challenges such as traffic congestion and safety concerns on the elevated expressway. The public transport system is dominated by buses, but data on frequency, reliability, and comfort is not available.",
+  "demand_elasticity": "If public transport improves, it is expected that some people will switch from private vehicles to public transport, but exact numbers are not available"
+}

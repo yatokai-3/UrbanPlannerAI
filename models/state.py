@@ -11,7 +11,7 @@ class ResearchStore:
         self.wikipedia = {}
         self.serper = {}
         self.documents = []
-        self.facts = []
+        self.facts = []  #facts is a list. . .
     
     def add_wikipedia(self, query, results):
         self.wikipedia[query] = results
@@ -43,10 +43,11 @@ class AnalysisStore:
     """Stores data from Agent 2 (Analyst)"""
     
     def __init__(self):
+        self.city_name = ""
         self.mobility_patterns = []
         self.current_demand = {}
         self.future_demand = {}
         self.capacity_gaps = []
         self.bottlenecks = []
         self.priority_corridors = []
-        self.recommended_focus_areas = []
+        self.deficiencies = ""
