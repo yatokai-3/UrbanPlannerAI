@@ -1,7 +1,7 @@
 # Environment Variables
 .env
 
-# Virtual Environment
+# Virtual Environment (waka -> prsnl, beni -> comp)
 waka/
 beni/
 venv/
