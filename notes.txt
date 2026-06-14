@@ -1,0 +1,6 @@
+work on first making the estimate ridership tool.
+DO NOT rely much here on groq.
+
+research to make a single tool, don't overcomplicate the entire project yet.
+
+then we will make the tool 2 and 3, feasibility and cost calc, respectively. . . 
