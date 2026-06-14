@@ -5,4 +5,5 @@ write all the import version and python version here, then i will install new en
 temporarily freeze the requirement with all the other imports.
 VERSION of all the imports also imp, to stop the code __phatna__
 
-python version (beni) -> 3.11.0
+python version (beni) -> 3.12.10
+python version (waka) -> 3.12.10
