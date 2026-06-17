@@ -1,41 +1,55 @@
 {
-  "mobility_patterns": "The city's transport system is dominated by public transport, accounting for 42% of all trips, followed by 2-wheelers at 29%. The average one-way commuting time is 42.45 minutes, covering a distance of 10.84 kms, and an average spending of Rs.2,589 per month on commuting to work. Peak hour travel is a significant factor, with 70.43% of commuters traveling during peak hours, and 43.30% of commuters traveling more than the predicted commute time.",
+  "mobility_patterns": "The city's population of 3.1 million people has a mode share of 13% using public transport, while 30% use private vehicles. The trip rates show an average of 2.5 trips per person per day, with a ridership of 1.2 million passengers per day on public transport. However, the exact peak hour patterns, key origin-destination pairs, and commute times are not available.",
   "current_demand": {
-    "total_daily_trips": "6.3 million trips daily",
-    "current_pt_capacity": "Data not available",
-    "unmet_demand": "Data not available",
-    "underserved_areas": "Data not available"
+    "total_daily_trips": "7.75 million",
+    "current_pt_capacity": "1.25 lakh daily commuters",
+    "unmet_demand": "Not available",
+    "underserved_areas": "Not available"
   },
   "future_demand": {
-    "population_growth_rate": "3.14%",
-    "expected_trips_in_2030": "Data not available",
-    "expected_trips_in_2035": "Data not available",
-    "motorization_increase": "Data not available"
+    "population_growth_rate": "5.3%",
+    "expected_population_2031": "93 lakhs",
+    "expected_trips_2030": "Not available",
+    "expected_trips_2035": "Not available"
   },
   "capacity_gaps": {
-    "trips_not_served": "Data not available",
-    "areas_without_pt": "Data not available",
-    "worst_times": "Peak hours",
-    "example": "Current buses serve a significant portion of the population, but data on exact numbers is not available"
+    "trips_not_served": "Not available",
+    "areas_without_pt": "Not available",
+    "worst_times": "Not available",
+    "example": "Current buses serve 1.25 lakh daily commuters, but the demand is higher"
   },
   "bottlenecks": [
     {
-      "location": "Silk Board junction to Electronic City",
-      "reason": "Geography and limited roads",
-      "severity": "High",
-      "economic_cost": "Data not available"
+      "location": "Tonk Road",
+      "reason": "Not available",
+      "severity": "Not available",
+      "economic_cost": "Not available"
+    },
+    {
+      "location": "Agra Road",
+      "reason": "Not available",
+      "severity": "Not available",
+      "economic_cost": "Not available"
     }
   ],
   "priority_corridors": [
     {
-      "origin": "Data not available",
-      "destination": "Data not available",
-      "distance": "Data not available",
-      "daily_demand": "Data not available",
-      "importance": "Data not available",
-      "current_congestion": "Data not available"
+      "origin": "Not available",
+      "destination": "Not available",
+      "distance": "Not available",
+      "daily_demand": "Not available",
+      "importance": "Not available",
+      "current_congestion": "Not available"
+    },
+    {
+      "origin": "Not available",
+      "destination": "Not available",
+      "distance": "Not available",
+      "daily_demand": "Not available",
+      "importance": "Not available",
+      "current_congestion": "Not available"
     }
   ],
-  "pt_deficiencies": "The city has a well-established infrastructure in terms of connectivity, but there are still challenges such as traffic congestion and safety concerns on the elevated expressway. The public transport system is dominated by buses, but data on frequency, reliability, and comfort is not available.",
-  "demand_elasticity": "If public transport improves, it is expected that some people will switch from private vehicles to public transport, but exact numbers are not available"
+  "pt_deficiencies": "The city's public transport system is in crisis, with a low 13% share of commuters using public transport. The number of buses has decreased, and there is a lack of public transport in some areas.",
+  "demand_elasticity": "If public transport improves, the mode share of public transport may increase, but the exact percentage of people who would switch from cars is not available."
 }

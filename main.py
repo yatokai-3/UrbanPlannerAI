@@ -6,8 +6,8 @@ Agent 1 → Agent 2 → Agent 3 → etc.
 """
 
 import json
-from agents.agent_zero_data_fetcher import run_data_collector_agent
-from agents.agent_first_analysis import run_analyst_agent
+from agents.agent_first_data_fetcher import run_data_collector_agent
+from agents.agent_second_analysis import run_analyst_agent
 
 
 def create_urban_plan(user_query: str):
@@ -42,16 +42,16 @@ def create_urban_plan(user_query: str):
 
 
     # ====== AGENT 2: ANALYSIS ======
-    print("\n[STEP 2/5] DEMAND ANALYSIS")
-    print("-" * 60)
+    # print("\n[STEP 2/5] DEMAND ANALYSIS")
+    # print("-" * 60)
     
-    analysis = run_analyst_agent(store.facts)
+    # analysis = run_analyst_agent(store.facts)
     
     # Save Agent 2 output
-    with open("agent2_output.json", "w") as f:
-        json.dump(analysis, f, indent=2)
+    # with open("agent2_output.json", "w") as f:
+    #     json.dump(analysis, f, indent=2)
     
-    print("✓ Agent 2 output saved to agent2_output.json\n")
+    # print("✓ Agent 2 output saved to agent2_output.json\n")
     
 
 
@@ -89,6 +89,6 @@ def create_urban_plan(user_query: str):
 if __name__ == "__main__":
     
     # Test with a query
-    user_query = "Reduce traffic congestion in Bangalore"
+    user_query = "Reduce traffic congestion in Jaipur"
     
     create_urban_plan(user_query)

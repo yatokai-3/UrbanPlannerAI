@@ -1,9 +1,9 @@
 """DATA COLLECTOR AGENT - Gathers city information"""
 
 import json
-from tools.tool_zero_wikipedia import search_wikipedia
-from tools.tool_zero_serper import search_serper, fetch_serper_content
-from tools.tool_zero_extraction_tool import (
+from tools.tool_first_wikipedia import search_wikipedia
+from tools.tool_first_serper import search_serper, fetch_serper_content
+from tools.tool_first_extraction_tool import (
     extract_key_facts,
     generate_research_queries,
     extract_city_name
