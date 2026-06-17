@@ -37,9 +37,6 @@ def create_urban_plan(user_query: str):
         json.dump(store.facts, f, indent=2)
     
     print("✓ Agent 1 output saved to agent1_output.json\n")
-    
-
-
 
     # ====== AGENT 2: ANALYSIS ======
     # print("\n[STEP 2/5] DEMAND ANALYSIS")
