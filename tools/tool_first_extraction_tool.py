@@ -1,4 +1,5 @@
 """Information extraction using LLM"""
+from tools.tool_first_tavily import tavily_search,fetchfull_tavily_content,process_documents_for_extraction
 
 import os
 import json
@@ -41,11 +42,11 @@ def generate_research_queries(user_query: str) -> dict:
         ❌ "transportation systems"
         
         DO ask specific questions like:
-        ✓ "daily commute trips from residential areas to CBD in [city] 2024"
+        ✓ "daily commute trips from residential areas to CBD in [city] [recent years]"
         ✓ "[corridor name] peak hour traffic volume and mode share"
         ✓ "bus ridership and frequency on major routes in [city]"
-        ✓ "commute time from [zone] to [zone] by car vs bus 2024"
-        ✓ "railway and metro capacity utilization in [city]"
+        ✓ "commute time from [zone] to [zone] by car vs bus [recent years]"
+        ✓ "railway and metro capacity utilization in [recent years]"
         
         STRUCTURE YOUR QUERIES BY THESE CATEGORIES:
         
@@ -57,27 +58,27 @@ def generate_research_queries(user_query: str) -> dict:
         2. CURRENT MODE SHARE & RIDERSHIP
         (How many use cars, buses, walking, cycling?)
         Ask for: % using each mode + absolute numbers
-        Example: "[City] public transport mode share and ridership data 2024"
+        Example: "[City] public transport mode share and ridership data [recent years]"
         Example: "[City] motorcycle/car usage percentage and daily trips"
         
         3. MAJOR CORRIDORS & OD PAIRS
         (Where do trips happen? City center, residential zones, employment zones)
         Ask for: Peak flows between major zones, commute distances/times
         Example: "commute volume and travel time from [residential zone] to [CBD/IT Park]"
-        Example: "[major road/corridor name] daily traffic volume by mode 2024"
+        Example: "[major road/corridor name] daily traffic volume by mode [recent years]"
         
         4. INFRASTRUCTURE CAPACITY & GAPS
         (What exists? What's missing?)
         Ask for: Bus routes/frequency, metro coverage, road capacity
         Example: "[City] bus network coverage and average frequency per route"
         Example: "metro/train stations coverage areas in [City]"
-        Example: "[City] road congestion indices and peak hour delays 2024"
+        Example: "[City] road congestion indices and peak hour delays [recent years]"
         
         5. TRANSPORT SYSTEM PERFORMANCE
         (How well is existing PT working?)
         Ask for: Bus punctuality, crowding, waiting times, service reliability
         Example: "[City] public bus average occupancy and crowding statistics"
-        Example: "bus service reliability and on-time performance in [City] 2024"
+        Example: "bus service reliability and on-time performance in [City] [recent years]"
         
         6. LAST-MILE & FIRST-MILE CONNECTIVITY
         (How do people reach transit? Can they walk/cycle?)
@@ -100,7 +101,7 @@ def generate_research_queries(user_query: str) -> dict:
         
         CRITICAL RULES:
         - Each query should be a single, searchable phrase (10-15 words max)
-        - Use specific place names, corridor names, year (2024)
+        - Use specific place names, corridor names, recent years in queries
         - Ask for NUMBERS, not descriptions
         - Make queries answerable by web search (Wikipedia, government reports, news)
         - Do NOT ask for predictions or opinions
@@ -120,7 +121,7 @@ def generate_research_queries(user_query: str) -> dict:
     queries = json.loads(response.choices[0].message.content)
     return queries
 
-print(json.dumps(generate_research_queries("Reduce traffic congestion in Jaipur"), indent=2))
+# print(json.dumps(generate_research_queries("Reduce traffic congestion in Jaipur"), indent=2))
 
 
 def extract_city_name(user_query: str) -> str:
@@ -150,37 +151,30 @@ def extract_key_facts(documents: list) -> list:
     """
     
     SYSTEM_PROMPT = """
-        You are a senior traffic analyst. Tell me what kind of data are you seeing and study it.
-        and tell me your best insights about this.  Straight up insights no unnecessary heading before giving insights.
-        
-        ALSO,
+        You are a senior traffic analyst studying urban transport and demographic documents.
 
-        Your task is to extract important factual information
-        from urban transport and demographic documents.
+        Your task: extract DETAILED, CONTEXT-RICH facts — not bare numbers.
 
         Rules:
+        - Each fact must be a full sentence with context (what, where, when, source detail if given).
 
-        Extract transport planning metrics.
+        BAD:  "Ridership: 19,100 per day"
 
-        Prioritize following items only when they are present in the content DO NOT made data by YOURSELF:
+        GOOD: "Jaipur Metro's two operational lines carry approximately 19,100 passengers per day, a figure the report flags as below projected targets."
+        - Only extract what is explicitly present in the content. Do NOT invent or estimate missing values.
+        - If a category is genuinely absent from this specific document, omit it from key_facts entirely — 
+        do not include a "Not available" placeholder.
+        - Prioritize these categories when present: population, population growth rate, density, employment,
+        vehicle ownership, mode share, ridership, trip rates, congestion indicators, major corridors,
+        planned projects.
+        - Extract as many distinct, substantive facts as the content actually supports — there is no fixed
+        count, aim for thoroughness over brevity.
 
-        - population
-        - population growth rate
-        - density
-        - employment
-        - vehicle ownership
-        - mode share
-        - ridership
-        - trip rates
-        - congestion indicators
-        - major corridors
-        - planned projects
-
-    Return ONLY valid JSON:
-    {
-        "insights": "analysis text",
-        "key_facts": ["fact1", "fact2", "fact3"]
-    }
+        Return ONLY valid JSON:
+        {
+            "insights": "2-4 sentence analytical summary of what this document reveals and why it matters for transport planning",
+            "key_facts": ["detailed fact sentence 1", "detailed fact sentence 2", ...]
+        }
     """
     
     extracted_facts = []
@@ -189,25 +183,120 @@ def extract_key_facts(documents: list) -> list:
         title = doc["title"]
         content = doc["content"]
         
+
+        try:
+
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                temperature=0,
+                max_tokens=2000,
+                response_format={"type": "json_object"},
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": content}
+                ]
+            )
+            
+            facts = json.loads(response.choices[0].message.content)
+            
+            extracted_facts.append({
+                "title": title,
+                "link":doc.get("link"),
+                "source": doc["source"],
+                "insights": facts.get("insights", ""),
+                "key_facts": facts.get("key_facts", [])
+            })
+        except Exception as e:
+            print(f"  ERROR extracting facts for '{title}': {e}")
+            continue
+    
+    return extracted_facts
+
+
+
+
+def enhance_query_for_extraction(original_query: str) -> str:
+    """
+    Takes a narrow search-style query and expands it into a broad
+    transport-planning extraction query, used for chunk similarity filtering
+    (NOT for the Tavily search itself — that stays narrow/specific).
+    """
+    
+    SYSTEM_PROMPT = """
+        You are a query rewriting assistant for an urban transport research pipeline.
+
+        You will receive a narrow search query that was used to find documents
+        (e.g. "Jaipur bus service reliability and on-time performance").
+
+        Your task: rewrite it into a BROADER extraction query that covers ALL
+        standard urban transport planning metrics, so it can be used to rank
+        document chunks by relevance for fact extraction — not just the narrow
+        topic in the original query.
+
+        Always include these categories in the rewritten query, regardless of
+        what the original query focused on:
+        population, population growth rate, density, employment,
+        vehicle ownership, mode share, ridership, trip rates,
+        congestion indicators, major corridors, planned transport projects
+
+        Also keep the city/location name and the original topic words from the
+        input query, so the rewritten query stays relevant to context.
+
+        Return ONLY valid JSON:
+        {
+            "extraction_query": "broadened query string here"
+        }
+    """
+    
+    try:
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             temperature=0,
+            max_tokens=300,
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": content}
+                {"role": "user", "content": original_query}
             ]
         )
         
-        facts = json.loads(response.choices[0].message.content)
-        
-        extracted_facts.append({
-            "title": title,
-            "source": doc["source"],
-            "insights": facts.get("insights", []),
-            "key_facts": facts.get("key_facts", [])
-        })
+        result = json.loads(response.choices[0].message.content)
+        return result.get("extraction_query", original_query)  # fallback to original if key missing
     
-    return extracted_facts
+    except Exception as e:
+        print(f"  ERROR enhancing query: {e} — falling back to original query")
+        return original_query  # never let this break the pipeline
+
+
+
+
+
+
+query="Jaipur bus service reliability and on-time performance"
+step_1=fetchfull_tavily_content(tavily_search(query))
+print(f"Fetched: {len(step_1)} docs, "
+      f"{sum(1 for d in step_1 if d['full_text'].startswith('ERROR:'))} failed")
+
+
+step_2=process_documents_for_extraction(step_1,enhance_query_for_extraction(query))
+print(f"Processed: {len(step_2)} docs survived cleaning/chunking/filtering")
+for doc in step_2:
+    print(f"\n=== {doc['title'][:50]} ===")
+    print(f"Chunk content length: {len(doc['content'])} chars")
+    print(doc['content'][:1500])
+    print("...")
+
+
+final_facts=extract_key_facts(step_2)
+print(f"Extracted facts from {len(final_facts)} docs")
+
+with open("doc_extract.json","w") as f:
+    json.dump(step_2,f,indent=2)
+
+with open("key_facts.json","w") as g:
+    json.dump(final_facts,g,indent=2)
+
+
+# print(final_facts)
 
 

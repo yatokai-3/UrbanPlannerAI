@@ -30,7 +30,7 @@ def extract_pdf_text(pdf_url: str) -> str:
     doc.close()
     os.remove(temp_pdf_path)
     
-    return full_text[:5000]
+    return full_text[:10000]
 
 
 def search_serper(query: str, limit: int = 3) -> list:
@@ -80,7 +80,7 @@ def search_serper(query: str, limit: int = 3) -> list:
     return final_results
 
 
-def fetch_serper_content(serper_results: list, top_k: int = 3) -> list:
+def fetchfull_serper_content(serper_results: list, top_k: int = 3) -> list:
     """
     Fetch full webpage content from search results.
     
@@ -120,7 +120,7 @@ def fetch_serper_content(serper_results: list, top_k: int = 3) -> list:
             final_results.append({
                 "title": item["title"],
                 "link": item["link"],
-                "content": text[:5000],
+                "content": text[:10000],
                 "source": "serper"
             })
         
@@ -133,3 +133,6 @@ def fetch_serper_content(serper_results: list, top_k: int = 3) -> list:
             })
     
     return final_results
+
+
+print(json.dumps(fetchfull_serper_content(search_serper("Jaipur cycle infrastructure coverage and usage 2024")), indent=2))

@@ -70,8 +70,9 @@ def search_wikipedia(query: str, limit: int = 3) -> list:
         
         final_results.append({
             "title": title,
-            "content": extract[:5000],
+            "content": extract[:10000],
             "source": "wikipedia"
         })
     
     return final_results
+print(json.dumps(search_wikipedia("Lucknow city"),indent=2))

@@ -2,7 +2,7 @@
 
 import json
 from tools.tool_first_wikipedia import search_wikipedia
-from tools.tool_first_serper import search_serper, fetch_serper_content
+from tools.tool_first_serper import search_serper, fetchfull_serper_content
 from tools.tool_first_extraction_tool import (
     extract_key_facts,
     generate_research_queries,
@@ -57,7 +57,7 @@ def run_data_collector_agent(user_query: str) -> ResearchStore:
     store.add_wikipedia(city_name, wiki_results)
     print(f"✓ Found {len(wiki_results)} Wikipedia pages\n")
     
-    # Step 4: Search Serper for each query
+    # Step 4: Search Serper for each query, basically we are not sending a single query in wikipedia. . . 
     print(f"🔍 Searching Serper ({len(all_questions)} queries)...")
     for query in all_questions:
         print(f"   - {query}")
@@ -66,7 +66,7 @@ def run_data_collector_agent(user_query: str) -> ResearchStore:
         store.add_serper(query, serper_results)
         
         # Fetch full content
-        docs = fetch_serper_content(serper_results, top_k=3)
+        docs = fetchfull_serper_content(serper_results, top_k=3)
         store.add_documents(docs)
     
     print(f"✓ Completed Serper searches\n")
