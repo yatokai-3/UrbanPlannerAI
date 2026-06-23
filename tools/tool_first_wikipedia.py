@@ -75,4 +75,4 @@ def search_wikipedia(query: str, limit: int = 3) -> list:
         })
     
     return final_results
-print(json.dumps(search_wikipedia("Lucknow city"),indent=2))
+# print(json.dumps(search_wikipedia("Lucknow city"),indent=2))

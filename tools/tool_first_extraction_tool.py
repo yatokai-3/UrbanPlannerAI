@@ -3,8 +3,10 @@ from tools.tool_first_tavily import tavily_search,fetchfull_tavily_content,proce
 
 import os
 import json
+import time
+import re
 from groq import Groq
-
+import config
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -18,7 +20,7 @@ def generate_research_queries(user_query: str) -> dict:
     """Generate search queries from user query"""
     
     SYSTEM_PROMPT = """
-        You are a TRANSPORT DATA ANALYST preparing research queries.
+        You are a TRANSPORT DATA ANALYST preparing research queries and the current year is 2026.
         
         Your job: Generate targeted search queries that will return SPECIFIC DATA for demand analysis.
         
@@ -42,18 +44,18 @@ def generate_research_queries(user_query: str) -> dict:
         ❌ "transportation systems"
         
         DO ask specific questions like:
-        ✓ "daily commute trips from residential areas to CBD in [city] [recent years]"
+        ✓ "daily commute trips from residential areas to CBD in [city] in recent 4-5 years"
         ✓ "[corridor name] peak hour traffic volume and mode share"
         ✓ "bus ridership and frequency on major routes in [city]"
-        ✓ "commute time from [zone] to [zone] by car vs bus [recent years]"
-        ✓ "railway and metro capacity utilization in [recent years]"
+        ✓ "commute time from [zone] to [zone] by car vs bus in recent 4-5 years"
+        ✓ "railway and metro capacity utilization in recent 4-5 years"
         
         STRUCTURE YOUR QUERIES BY THESE CATEGORIES:
         
         1. BASELINE MOBILITY METRICS
         (Population, daily trips, growth rate)
         Ask for: total population + recent growth %, daily trip statistics
-        Example: "[City] total daily commute trips and growth rate 2020-2024"
+        Example: "[City] total daily commute trips and growth rate"
         
         2. CURRENT MODE SHARE & RIDERSHIP
         (How many use cars, buses, walking, cycling?)
@@ -101,7 +103,7 @@ def generate_research_queries(user_query: str) -> dict:
         
         CRITICAL RULES:
         - Each query should be a single, searchable phrase (10-15 words max)
-        - Use specific place names, corridor names, recent years in queries
+        - Use specific place names, corridor names, recent 4-5 years in queries
         - Ask for NUMBERS, not descriptions
         - Make queries answerable by web search (Wikipedia, government reports, news)
         - Do NOT ask for predictions or opinions
@@ -109,8 +111,10 @@ def generate_research_queries(user_query: str) -> dict:
     """
     
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        temperature=0,
+        # model="llama-3.3-70b-versatile",
+        # model="openai/gpt-oss-120b",
+        model=config.LLM_MODEL,
+        temperature=config.LLM_TEMPERATURE,
         response_format={"type": "json_object"},
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
@@ -121,15 +125,15 @@ def generate_research_queries(user_query: str) -> dict:
     queries = json.loads(response.choices[0].message.content)
     return queries
 
-# print(json.dumps(generate_research_queries("Reduce traffic congestion in Jaipur"), indent=2))
+# print(json.dumps(generate_research_queries("Reduce traffic congestion in Banglore"), indent=2))
 
 
 def extract_city_name(user_query: str) -> str:
     """Extract city name from user query"""
     
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        temperature=0,
+        model=config.LLM_MODEL,
+        temperature=config.LLM_TEMPERATURE,
         messages=[
             {"role": "system", "content": "Extract ONLY city name. Nothing else."},
             {"role": "user", "content": user_query}
@@ -141,7 +145,7 @@ def extract_city_name(user_query: str) -> str:
 
 def extract_key_facts(documents: list) -> list:
     """
-    Extract important facts from documents of SERPER using LLM.
+    Extract important facts from documents of TAVILY using LLM.
     
     Args:
         documents: List of documents with title, content, source
@@ -178,123 +182,111 @@ def extract_key_facts(documents: list) -> list:
     """
     
     extracted_facts = []
-    
+
     for doc in documents:
         title = doc["title"]
         content = doc["content"]
-        
 
-        try:
+        # Retry only for rate-limit (429) errors. A truncated/invalid JSON is a
+        # different problem (max_tokens too low) and retrying won't fix it.
+        for attempt in range(config.LLM_MAX_RETRIES):
+            try:
+                response = client.chat.completions.create(
+                    model=config.LLM_MODEL,
+                    temperature=config.LLM_TEMPERATURE,
+                    max_tokens=config.LLM_MAX_FACT_TOKENS,
+                    response_format={"type": "json_object"},
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": content}
+                    ]
+                )
 
-            response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                temperature=0,
-                max_tokens=2000,
-                response_format={"type": "json_object"},
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": content}
-                ]
-            )
-            
-            facts = json.loads(response.choices[0].message.content)
-            
-            extracted_facts.append({
-                "title": title,
-                "link":doc.get("link"),
-                "source": doc["source"],
-                "insights": facts.get("insights", ""),
-                "key_facts": facts.get("key_facts", [])
-            })
-        except Exception as e:
-            print(f"  ERROR extracting facts for '{title}': {e}")
-            continue
-    
+                facts = json.loads(response.choices[0].message.content)
+
+                extracted_facts.append({
+                    "title": title,
+                    "link": doc.get("link"),
+                    "source": doc["source"],
+                    "query": doc.get("query"),  # the search query this doc came from
+                    "insights": facts.get("insights", ""),
+                    "key_facts": facts.get("key_facts", [])
+                })
+                break  # success — stop retrying this doc
+
+            except Exception as e:
+                msg = str(e)
+                is_rate_limit = "rate_limit" in msg or "429" in msg
+                if is_rate_limit and attempt < config.LLM_MAX_RETRIES - 1:
+                    # Groq tells us how long to wait ("try again in 2.75s") — honor it.
+                    match = re.search(r"try again in ([\d.]+)s", msg)
+                    wait = float(match.group(1)) + 0.5 if match else config.LLM_REQUEST_DELAY * (attempt + 1)
+                    print(f"  Rate limited on '{title[:40]}' — waiting {wait:.1f}s (attempt {attempt + 1}/{config.LLM_MAX_RETRIES})")
+                    time.sleep(wait)
+                    continue
+                print(f"  ERROR extracting facts for '{title}': {e}")
+                break  # non-rate-limit error (or out of retries) — give up on this doc
+
+        # Throttle between docs to smooth out token-per-minute usage
+        time.sleep(config.LLM_REQUEST_DELAY)
+
     return extracted_facts
 
 
 
 
-def enhance_query_for_extraction(original_query: str) -> str:
+# Standard urban-transport planning metrics. The chunk-similarity filter ranks
+# document chunks against these so fact extraction isn't limited to the narrow
+# topic of the original search query.
+STANDARD_TRANSPORT_METRICS = (
+    "population, population growth rate, density, employment, "
+    "vehicle ownership, mode share, ridership, trip rates, "
+    "congestion indicators, major corridors, planned transport projects"
+)
+
+
+def build_extraction_query(original_query: str) -> str:
     """
-    Takes a narrow search-style query and expands it into a broad
-    transport-planning extraction query, used for chunk similarity filtering
-    (NOT for the Tavily search itself — that stays narrow/specific).
+    Expand a narrow search-style query into a broad transport-planning
+    extraction query, used for chunk similarity filtering (NOT for the Tavily
+    search itself — that stays narrow/specific).
+
+    This is a deterministic template: it keeps the original query (which carries
+    the city/topic context) and appends the standard metric categories. No LLM
+    call — the broadened string only feeds embedding-based chunk ranking, so a
+    fixed template is just as effective and saves one Groq call per query.
     """
-    
-    SYSTEM_PROMPT = """
-        You are a query rewriting assistant for an urban transport research pipeline.
-
-        You will receive a narrow search query that was used to find documents
-        (e.g. "Jaipur bus service reliability and on-time performance").
-
-        Your task: rewrite it into a BROADER extraction query that covers ALL
-        standard urban transport planning metrics, so it can be used to rank
-        document chunks by relevance for fact extraction — not just the narrow
-        topic in the original query.
-
-        Always include these categories in the rewritten query, regardless of
-        what the original query focused on:
-        population, population growth rate, density, employment,
-        vehicle ownership, mode share, ridership, trip rates,
-        congestion indicators, major corridors, planned transport projects
-
-        Also keep the city/location name and the original topic words from the
-        input query, so the rewritten query stays relevant to context.
-
-        Return ONLY valid JSON:
-        {
-            "extraction_query": "broadened query string here"
-        }
-    """
-    
-    try:
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            temperature=0,
-            max_tokens=300,
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": original_query}
-            ]
-        )
-        
-        result = json.loads(response.choices[0].message.content)
-        return result.get("extraction_query", original_query)  # fallback to original if key missing
-    
-    except Exception as e:
-        print(f"  ERROR enhancing query: {e} — falling back to original query")
-        return original_query  # never let this break the pipeline
+    return f"{original_query} — {STANDARD_TRANSPORT_METRICS}"
 
 
 
 
+# query="Jaipur bus service reliability and on-time performance"
+# step_1=fetchfull_tavily_content(tavily_search(query))
+# print(f"Fetched: {len(step_1)} docs, "
+#       f"{sum(1 for d in step_1 if d['full_text'].startswith('ERROR:'))} failed")
+
+# print("\n\n")
+# print(build_extraction_query(query))
+# print("\n\n")
+
+# step_2=process_documents_for_extraction(step_1,enhance_query_for_extraction(query))
+# print(f"Processed: {len(step_2)} docs survived cleaning/chunking/filtering")
+# for doc in step_2:
+#     print(f"\n=== {doc['title'][:50]} ===")
+#     print(f"Chunk content length: {len(doc['content'])} chars")
+#     print(doc['content'][:500])
+#     print("...")
 
 
-query="Jaipur bus service reliability and on-time performance"
-step_1=fetchfull_tavily_content(tavily_search(query))
-print(f"Fetched: {len(step_1)} docs, "
-      f"{sum(1 for d in step_1 if d['full_text'].startswith('ERROR:'))} failed")
+# final_facts=extract_key_facts(step_2)
+# print(f"Extracted facts from {len(final_facts)} docs")
 
+# with open("doc_extract_3.json","w") as f:
+#     json.dump(step_2,f,indent=2)
 
-step_2=process_documents_for_extraction(step_1,enhance_query_for_extraction(query))
-print(f"Processed: {len(step_2)} docs survived cleaning/chunking/filtering")
-for doc in step_2:
-    print(f"\n=== {doc['title'][:50]} ===")
-    print(f"Chunk content length: {len(doc['content'])} chars")
-    print(doc['content'][:1500])
-    print("...")
-
-
-final_facts=extract_key_facts(step_2)
-print(f"Extracted facts from {len(final_facts)} docs")
-
-with open("doc_extract.json","w") as f:
-    json.dump(step_2,f,indent=2)
-
-with open("key_facts.json","w") as g:
-    json.dump(final_facts,g,indent=2)
+# with open("key_facts_3.json","w") as g:
+#     json.dump(final_facts,g,indent=2)
 
 
 # print(final_facts)

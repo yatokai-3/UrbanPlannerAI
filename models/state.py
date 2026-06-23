@@ -10,7 +10,9 @@ class ResearchStore:
     def __init__(self):
         self.wikipedia = {}
         self.serper = {}
+        self.tavily={}
         self.documents = []
+        self.focused_docs=[] #after chunk and similarity search. . .
         self.facts = []  #facts is a list. . .
     
     def add_wikipedia(self, query, results):
@@ -19,9 +21,16 @@ class ResearchStore:
     
     def add_serper(self, query, results):
         self.serper[query] = results
+
+    def add_tavily(self, query, results):
+        self.tavily[query] = results
     
     def add_documents(self, docs):
         self.documents.extend(docs)
+
+    def add_focus_documents(self,foc_doc):
+        self.focused_docs.extend(foc_doc)
+    
     
     def add_facts(self, facts):
         self.facts.extend(facts)
@@ -31,8 +40,9 @@ class ResearchStore:
     def summary(self):
         return {
             "wikipedia_queries": len(self.wikipedia),
-            "serper_queries": len(self.serper),
+            "tavily_queries": len(self.tavily),
             "documents": len(self.documents),
+            "focused_documents":len(self.focused_docs),
             "facts": len(self.facts)
         }
 

@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 from tavily import TavilyClient
 from io import BytesIO
 import numpy as np
+import config
 
 
 import os
@@ -120,7 +121,7 @@ def fetchfull_tavily_content(tavily_results: list) -> list:
                 "score":item.get("score"),
                 "full_text": text,
                 "tabular_data":tables,
-                "source":"travily"
+                "source":"tavily"
             })
 
         except Exception as e:
@@ -131,7 +132,7 @@ def fetchfull_tavily_content(tavily_results: list) -> list:
                 "score":item.get("score"),
                 "full_text": f"ERROR: {str(e)}",
                 "tabular_data":f"ERROR: {str(e)}",
-                "source":"travily"
+                "source":"tavily"
             })
 
     return final_results
@@ -214,7 +215,7 @@ def filter_chunks_by_similarity(chunks: list, query: str, top_k: int = 20) -> li
 and then we will do the embedding and then we will do the vector search and then we will 
 do the question answering. '''
 
-def process_documents_for_extraction(tavily_full_results:list, query:str, top_k_chunks:int=8)->list:
+def process_documents_for_extraction(tavily_full_results:list, query:str, top_k_chunks:int=5)->list:
     '''
     full pipeline: travily full text result -> fetch full content -> clean -> chunk ->
     filter relevant chunks -> ready for LLM Extraction.
@@ -241,6 +242,7 @@ def process_documents_for_extraction(tavily_full_results:list, query:str, top_k_
             "link": doc["link"],
             "source": doc["source"],
             "score": doc["score"],
+            "query": doc.get("query"),  # which search query surfaced this doc
             "content": "\n\n---\n\n".join(relevant_chunks)  # this goes into extract_key_facts
         })
     

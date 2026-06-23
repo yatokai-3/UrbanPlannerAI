@@ -135,4 +135,4 @@ def fetchfull_serper_content(serper_results: list, top_k: int = 3) -> list:
     return final_results
 
 
-print(json.dumps(fetchfull_serper_content(search_serper("Jaipur cycle infrastructure coverage and usage 2024")), indent=2))
+# print(json.dumps(fetchfull_serper_content(search_serper("Jaipur cycle infrastructure coverage and usage 2024")), indent=2))
