@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 import requests
 import os
+import config
 
 
 GROQ_API_KEY = os.environ["GROQ_API_KEY"]
@@ -110,8 +111,8 @@ def run_analyst_agent(facts: list) -> dict:
     '''
 
     response=client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        temperature=0.2,
+        model=config.LLM_MODEL,
+        temperature=config.LLM_TEMPERATURE,
         response_format={"type": "json_object"},
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
