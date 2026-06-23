@@ -6,6 +6,7 @@ Agent 1 → Agent 2 → Agent 3 → etc.
 """
 
 import json
+import config
 from agents.agent_first_data_fetcher import run_data_collector_agent
 from agents.agent_second_analysis import run_analyst_agent
 
@@ -26,29 +27,48 @@ def create_urban_plan(user_query: str):
     print("URBAN PLANNER AI - STARTING WORKFLOW")
     print("🚀 "*20 + "\n")
     
+
+
+
+
+
+    
     # ====== AGENT 1: DATA COLLECTION ======
     print("\n[STEP 1/5] DATA COLLECTION")
     print("-" * 60)
-    
-    store = run_data_collector_agent(user_query)
-    
-    # Save Agent 1 output
-    with open("agent1_output.json", "w") as f:
-        json.dump(store.facts, f, indent=2)
-    
-    print("✓ Agent 1 output saved to agent1_output.json\n")
+
+    if config.USE_CACHED_AGENT1:
+        # --- TEMPORARY: reuse previously saved facts instead of the ~20-min run.
+        # Revert by setting USE_CACHED_AGENT1 = False in config.py ---
+        print(f"⏩ Using cached Agent 1 facts from '{config.AGENT1_FACTS_CACHE}' (skipping data collection)")
+        with open(config.AGENT1_FACTS_CACHE, "r", encoding="utf-8") as f:
+            facts = json.load(f)
+        print(f"✓ Loaded {len(facts)} cached facts\n")
+    else:
+        store = run_data_collector_agent(user_query)
+        facts = store.facts
+        # Save Agent 1 output
+        with open("agent1_output.json", "w", encoding="utf-8") as f:
+            json.dump(facts, f, indent=2)
+        print("✓ Agent 1 output saved to agent1_output.json\n")
+
+
+
+
+
+
 
     # ====== AGENT 2: ANALYSIS ======
-    # print("\n[STEP 2/5] DEMAND ANALYSIS")
-    # print("-" * 60)
-    
-    # analysis = run_analyst_agent(store.facts)
-    
+    print("\n[STEP 2/5] DEMAND ANALYSIS")
+    print("-" * 60)
+
+    analysis = run_analyst_agent(facts)
+
     # Save Agent 2 output
-    # with open("agent2_output.json", "w") as f:
-    #     json.dump(analysis, f, indent=2)
-    
-    # print("✓ Agent 2 output saved to agent2_output.json\n")
+    with open("agent2_output.json", "w", encoding="utf-8") as f:
+        json.dump(analysis, f, indent=2)
+
+    print("✓ Agent 2 output saved to agent2_output.json\n")
     
 
 

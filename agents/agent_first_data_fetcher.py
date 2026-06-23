@@ -130,17 +130,20 @@ def run_data_collector_agent(user_query: str) -> ResearchStore:
     
     return store
 
-fir_res=run_data_collector_agent("sustainable plan for Jaipur")
+# Run Agent 1 standalone (and regenerate the cached JSONs) ONLY when this file
+# is executed directly: `python -m agents.agent_first_data_fetcher`.
+# Guarding behind __main__ means importing this module (e.g. from main.py) does
+# NOT trigger a full ~20-min data-collection run.
+if __name__ == "__main__":
+    fir_res = run_data_collector_agent("sustainable plan for Jaipur")
 
+    with open("1. ENTIRE TEXT DOCUMENT.json", "w") as f:
+        json.dump(fir_res.documents, f, indent=2)
 
+    with open("2. DOCS with FOCUSED CHUNKS ONLY.json", "w") as f:
+        json.dump(fir_res.focused_docs, f, indent=2)
 
-with open("1. ENTIRE TEXT DOCUMENT.json","w") as f:
-    json.dump(fir_res.documents , f, indent=2)
-
-with open("2. DOCS with FOCUSED CHUNKS ONLY.json","w") as f:
-    json.dump(fir_res.focused_docs , f, indent=2)
-
-with open("3. FINAL FACTS based on CHUNKS.json","w") as f:
-    json.dump(fir_res.facts , f, indent=2)
+    with open("3. FINAL FACTS based on CHUNKS.json", "w") as f:
+        json.dump(fir_res.facts, f, indent=2)
 
 

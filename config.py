@@ -25,3 +25,11 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # City Data
 DEFAULT_CITIES = ["Lucknow", "Delhi", "Odisha"]
+
+# ---- TEMPORARY: Agent 1 caching for end-to-end testing ----
+# Agent 1 takes ~20 min to run. While building the downstream agents (2-5),
+# set USE_CACHED_AGENT1 = True to skip Agent 1 in main.py and load previously
+# saved facts from AGENT1_FACTS_CACHE instead.
+# To REVERT to the full generalized pipeline: set USE_CACHED_AGENT1 = False.
+USE_CACHED_AGENT1 = True
+AGENT1_FACTS_CACHE = "3. FINAL FACTS based on CHUNKS.json"
