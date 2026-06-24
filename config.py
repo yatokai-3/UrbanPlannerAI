@@ -9,7 +9,12 @@ SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 
 # LLM Settings
 # LLM_MODEL = "llama-3.3-70b-versatile"
+'''THIS LLM is a reasoning model hence was causing issue with agent 2 fact'''
 LLM_MODEL="openai/gpt-oss-120b"
+# Non-reasoning model for JSON-extraction/filtering tasks. Reasoning models burn
+# the completion-token budget "thinking" and return empty/truncated JSON, so use
+# a plain instruct model wherever we force response_format=json_object.
+LLM_JSON_MODEL = "llama-3.3-70b-versatile"
 LLM_TEMPERATURE = 0.3
 # Seconds to wait between successive Groq calls (rate-limit throttle)
 LLM_REQUEST_DELAY = 2

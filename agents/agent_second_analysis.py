@@ -2,13 +2,17 @@
 
 # No external tools — just LLM reasoning over Agent 1's facts.
 # NOTE on design: Agent 1 produces ~350 facts (~21k tokens). Sending them all in
-# ONE Groq call exceeds the free-tier 8000 tokens-per-minute limit and always
-# 429s. So this agent uses a MAP-REDUCE approach:
-#   1. dedupe + drop empty docs
-#   2. MAP   : batch facts under the TPM ceiling; each call keeps only the
-#              transport-relevant facts and discards demographic/tourism noise
-#   3. REDUCE: one analysis call over the clean digest -> structured JSON
+# ONE Groq call exceeds the per-request token ceiling, and Groq's free tier also
+# caps tokens-per-day (~100k). So this agent uses TWO-LEVEL filtering before the
+# single analysis call:
+#   LEVEL 1 (MAP, LLM)   : batch facts; each call semantically keeps only the
+#                          transport-relevant ones, discarding demographic/tourism noise
+#   LEVEL 2 (SELECT, no-LLM): keyword-score the survivors and cap to a char budget
+#                          so the final call fits one request (spends no tokens)
+#   REDUCE (LLM)         : one analysis call over the filtered facts -> structured JSON
 # The public function signature stays the same: run_analyst_agent(facts) -> dict
+
+
 import json
 import os
 import time
@@ -24,20 +28,29 @@ client = Groq(api_key=GROQ_API_KEY)
 
 
 # Keep each MAP call's evidence well under the per-minute token budget.
-# ~12000 chars ≈ ~3000 tokens of input, leaving room for the prompt + output.
-MAP_CHAR_BUDGET = 12000
+# ~8000 chars ≈ ~2000 tokens of input. gpt-oss is a REASONING model — it spends
+# completion tokens thinking before emitting JSON, so we leave generous room for
+# output (MAP_MAX_TOKENS) and keep input small so input+output stays under 8k TPM.
+MAP_CHAR_BUDGET = 8000
+MAP_MAX_TOKENS = 4000
+
+# The single REDUCE call must fit input + output under the model's per-request
+# token ceiling (llama-3.3-70b free tier = 12000 TPM). So cap the evidence we
+# send (~28000 chars ≈ ~7000 tokens) and reserve the rest for the JSON output.
+REDUCE_CHAR_BUDGET = 28000
+REDUCE_MAX_TOKENS = 3500
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _chat_json(messages: list, max_tokens: int) -> dict:
+def chat_json(messages: list, max_tokens: int) -> dict:
     """One Groq JSON-mode call with retry on 429 (mirrors Agent 1 throttling)."""
     for attempt in range(config.LLM_MAX_RETRIES):
         try:
             response = client.chat.completions.create(
-                model=config.LLM_MODEL,
+                model=config.LLM_JSON_MODEL,  # non-reasoning model: reliable JSON
                 temperature=config.LLM_TEMPERATURE,
                 max_tokens=max_tokens,
                 response_format={"type": "json_object"},
@@ -57,7 +70,7 @@ def _chat_json(messages: list, max_tokens: int) -> dict:
     raise RuntimeError("Groq call failed after all retries")
 
 
-def _collect_unique_facts(facts: list) -> list:
+def remove_duplicate_facts(facts: list) -> list:
     """Flatten Agent 1's per-doc facts into a de-duplicated list of strings."""
     seen = set()
     unique = []
@@ -72,8 +85,8 @@ def _collect_unique_facts(facts: list) -> list:
     return unique
 
 
-def _batch_by_chars(items: list, budget: int) -> list:
-    """Group items into batches whose joined length stays under `budget`."""
+def facts_batch_maker(items: list, budget: int) -> list:
+    """ Group items into batches whose joined length stays under `budget`. """
     batches, current, size = [], [], 0
     for item in items:
         if current and size + len(item) > budget:
@@ -115,28 +128,81 @@ _MAP_PROMPT = """
 """
 
 
-def _build_evidence_digest(facts: list) -> list:
-    """MAP stage: return a compact, transport-relevant, de-noised fact list."""
-    unique = _collect_unique_facts(facts)
-    batches = _batch_by_chars(unique, MAP_CHAR_BUDGET)
-    print(f"  [analyst] {len(unique)} unique facts -> {len(batches)} map batch(es)")
+def keep_transport_relevent_chunk(facts: list) -> list:
+    """MAP stage: return a compact, transport-relevant, de-noised weird like religion, tourism fact list."""
+    unique = remove_duplicate_facts(facts)
+    batches = facts_batch_maker(unique, MAP_CHAR_BUDGET)
+    print(f"  [analyst] {len(unique)} unique Tranport related facts -> {len(batches)} map batch(es)")
 
     digest = []
     for i, batch in enumerate(batches, 1):
         payload = "\n".join(f"- {f}" for f in batch)
-        result = _chat_json(
-            messages=[
-                {"role": "system", "content": _MAP_PROMPT},
-                {"role": "user", "content": payload},
-            ],
-            max_tokens=1500,
-        )
-        kept = result.get("relevant_facts", [])
-        digest.extend(kept)
-        print(f"  [analyst] map batch {i}/{len(batches)}: kept {len(kept)}/{len(batch)} facts")
+        try:
+            result = chat_json(
+                messages=[
+                    {"role": "system", "content": _MAP_PROMPT},
+                    {"role": "user", "content": payload},
+                ],
+                max_tokens=MAP_MAX_TOKENS,
+            )
+            kept = result.get("relevant_facts", [])
+            digest.extend(kept)
+            print(f"  [analyst] map batch {i}/{len(batches)}: kept {len(kept)}/{len(batch)} crisp tranport facts")
+        except Exception as e:
+            # Don't let one bad batch abort the whole analysis — skip and continue.
+            print(f"  [analyst] map batch {i}/{len(batches)} FAILED, skipping: {e}")
         time.sleep(config.LLM_REQUEST_DELAY)  # smooth TPM usage between calls
 
     return digest
+
+
+# ---------------------------------------------------------------------------
+# SELECT: deterministic (NO-LLM) fact filtering — saves the daily token budget
+# ---------------------------------------------------------------------------
+
+# Transport-relevance keywords. Scoring facts with these is free and instant, so
+# we avoid spending the per-day token budget on LLM filtering/condensing.
+_TRANSPORT_KEYWORDS = (
+    "traffic", "congestion", "vehicle", "car", "bus", "metro", "rail", "train",
+    "transit", "transport", "road", "highway", "corridor", "junction", "trip",
+    "commut", "ridership", "passenger", "mode share", "peak", "travel time",
+    "brt", "cycle", "cycling", "pedestrian", "walk", "parking", "accident",
+    "fatalit", "fleet", "route", "frequency", "pcu", "volume", "two-wheeler",
+    "motorcycle", "rickshaw", "ipt", "fare", "population", "growth", "density",
+    "urbanis", "urbaniz", "employment", "lakh", "per day", "km", "flyover",
+    "mobility", "station",
+)
+
+
+def _transport_score(fact: str) -> int:
+    """How many transport keywords appear in a fact (0 = likely noise)."""
+    low = fact.lower()
+    return sum(1 for kw in _TRANSPORT_KEYWORDS if kw in low)
+
+
+def select_relevant_facts(fact_strings: list, char_budget: int) -> list:
+    """
+    Level-2 filter: deterministically pick the most transport-relevant facts that
+    fit char_budget. Input is a FLAT list of fact strings (the level-1 MAP output).
+    NO LLM calls — keyword scoring + char cap. Drops zero-keyword noise first,
+    then keeps the highest-scoring facts until the budget is full.
+    """
+    scored = [(f, _transport_score(f)) for f in fact_strings]
+    relevant = [(f, s) for (f, s) in scored if s > 0]          # drop pure noise
+    relevant.sort(key=lambda x: x[1], reverse=True)            # most relevant first
+
+    selected, size = [], 0
+    for f, _ in relevant:
+        line_len = len(f) + 3
+        if size + line_len > char_budget:
+            continue  # skip overflow; keep scanning for shorter high-score facts
+        selected.append(f)
+        size += line_len
+
+    print(f"  [analyst] level-2 select: {len(selected)}/{len(fact_strings)} facts kept "
+          f"({len(fact_strings) - len(relevant)} dropped as noise, "
+          f"{len(relevant) - len(selected)} dropped to fit budget)")
+    return selected
 
 
 # ---------------------------------------------------------------------------
@@ -205,26 +271,52 @@ def run_analyst_agent(facts: list) -> dict:
     Agent 2: Analyst — turns Agent 1's raw facts into a structured understanding
     of the city's transport demand and gaps for the designer (Agent 3).
 
-    Flow:
+    Flow (two-level filtering, then analyze):
     1. Input: facts collected by Agent 1 (list of per-doc {key_facts, ...})
-    2. MAP: dedupe + filter to transport-relevant evidence (TPM-safe batches)
-    3. REDUCE: one analysis call -> structured JSON
+    2. LEVEL 1 (MAP, LLM): semantically keep only transport-relevant facts
+    3. LEVEL 2 (SELECT, no-LLM): keyword-score + cap to fit one REDUCE call
+    4. REDUCE (LLM): one analysis call -> structured JSON
     '''
-    print("  [analyst] building transport-relevant evidence digest...")
-    digest = _build_evidence_digest(facts)
-
+    # Level 1 — semantic filter via the LLM (dedupes + drops noise by meaning).
+    digest = keep_transport_relevent_chunk(facts)
     if not digest:
-        print("  [analyst] WARNING: no transport-relevant evidence found")
-        return {"error": "no transport-relevant evidence extracted from Agent 1 facts"}
+        print("  [analyst] WARNING: level-1 filter returned no facts")
+        return {"error": "no transport-relevant facts extracted from Agent 1 output"}
 
-    evidence_text = "\n".join(f"- {f}" for f in digest)
-    print(f"  [analyst] reducing {len(digest)} evidence facts into structured analysis...")
+    # Level 2 — deterministic keyword-score + budget cap so the REDUCE call fits
+    # one request (no extra tokens spent).
+    selected = select_relevant_facts(digest, REDUCE_CHAR_BUDGET)
+    if not selected:
+        print("  [analyst] WARNING: level-2 filter returned no facts")
+        return {"error": "no transport-relevant facts survived filtering"}
 
-    analysis = _chat_json(
+    evidence_text = "\n".join(f"- {f}" for f in selected)
+    print(f"  [analyst] reducing {len(selected)} facts into structured analysis (1 LLM call)...")
+
+    analysis = chat_json(
         messages=[
             {"role": "system", "content": _ANALYSIS_PROMPT},
             {"role": "user", "content": f"EVIDENCE:\n{evidence_text}"},
         ],
-        max_tokens=config.LLM_MAX_FACT_TOKENS,
+        max_tokens=REDUCE_MAX_TOKENS,
     )
     return analysis
+
+
+
+# Run Agent 2 standalone ONLY when executed directly:
+#   python -m agents.agent_second_analysis
+# Guarding behind __main__ stops a full run from firing on import (e.g. from
+# main.py or test scripts).
+if __name__ == "__main__":
+    with open(config.AGENT1_FACTS_CACHE, "r", encoding="utf-8") as f:
+        facts_crisp = json.load(f)
+
+    analysis_check = run_analyst_agent(facts_crisp)
+
+    with open("agent2_output.json", "w", encoding="utf-8") as f:
+        json.dump(analysis_check, f, indent=2)
+
+    print("[OK] Agent 2 output saved to agent2_output.json")
+
+
