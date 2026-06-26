@@ -1,0 +1,92 @@
+{
+  "city": "Jaipur",
+  "key_metrics": {
+    "population_current": "5.586 million (2024)",
+    "population_growth_rate": "2.6% per annum (2024)",
+    "estimated_daily_trips": "3.25 million (derived from home-based travel survey)",
+    "current_mode_share": "two-wheelers: 27%, cars: 17%, city buses: 18%, non-motorised transport: 32%, metro: 0.5%",
+    "existing_pt_capacity": "1.2-1.5 million person-trips per day (peak-hour bus capacity)",
+    "pt_demand_gap": "shortfall of approximately 0.3-0.6 million person-trips per day (based on designed capacity of 1.8 million trips)"
+  },
+  "mobility_patterns": {
+    "mode_share": "two-wheelers: 27%, cars: 17%, city buses: 18%, non-motorised transport: 32%, metro: 0.5%",
+    "peak_patterns": "morning rush hour: 32 minutes 15 seconds for a 10 km trip, evening rush hour: 36 minutes 9 seconds for a 10 km trip",
+    "key_od_pairs": "not specified, but major traffic corridors include Ajmer Road, Apex Circle, Ramganj, Jawahar Nagar, JDA Circle, Khasa Kothi, Chomu Pulia, Shanti Nagar Circle",
+    "commute_times": "average travel time for a 10 km drive: 29 minutes 16 seconds"
+  },
+  "current_demand": {
+    "total_daily_trips": "3.25 million (derived from home-based travel survey)",
+    "current_pt_capacity_vs_demand": "shortfall of approximately 0.3-0.6 million person-trips per day (based on designed capacity of 1.8 million trips)",
+    "underserved_areas": "40% of peripheral residential zones lack any transit stop within an 800-metre walking distance"
+  },
+  "future_demand": {
+    "growth_rate": "2.6% per annum (2024), 2.5% per annum (2031), 2.3% per annum (2041), 1.4% per annum (2051 and 2055)",
+    "projected_population": "66.42 million (2031), 83.15 million (2041), 95.76 million (2051), 101.3 million (2055)",
+    "projected_trips": "not specified",
+    "trip_length": "expected to grow from 7.9 km in 2009 to 9.5 km in the 2031 'With Mass Transit System' scenario",
+    "motorization_trend": "two-wheelers and cars together accounted for 83% of Jaipur's registered vehicles in 2017"
+  },
+  "capacity_gaps": {
+    "trips_that_cannot_be_served": "approximately 0.3-0.6 million person-trips per day (based on designed capacity of 1.8 million trips)",
+    "areas_with_no_pt": "40% of peripheral residential zones lack any transit stop within an 800-metre walking distance",
+    "worst_times": "Friday, 17 October 2025, when congestion peaked at 90% during the 6 pm period"
+  },
+  "bottlenecks": [
+    {
+      "location": "Ajmer Road (Toll Plaza)",
+      "reason": "high traffic volume",
+      "severity": "11,207 peak PCU and 116,735 daily PCU, representing 10% of total traffic"
+    },
+    {
+      "location": "Apex Circle",
+      "reason": "high traffic volume",
+      "severity": "2.9 lakh vehicles daily"
+    },
+    {
+      "location": "Ramganj",
+      "reason": "high traffic volume",
+      "severity": "2.8 lakh vehicles daily"
+    }
+  ],
+  "priority_corridors": [
+    {
+      "name": "Ring Road BRT from Ambabari to Sindhi Camp",
+      "origin": "Ambabari",
+      "destination": "Sindhi Camp",
+      "distance_km": "not specified",
+      "daily_demand": "4,200 trips",
+      "current_congestion": "not specified"
+    },
+    {
+      "name": "Dhani Govindapura to Ambabari",
+      "origin": "Dhani Govindapura",
+      "destination": "Ambabari",
+      "distance_km": "not specified",
+      "daily_demand": "4,100 trips",
+      "current_congestion": "not specified"
+    },
+    {
+      "name": "Ambabari to Kanakpura Railway Station via Ajmeer Road",
+      "origin": "Ambabari",
+      "destination": "Kanakpura Railway Station",
+      "distance_km": "not specified",
+      "daily_demand": "3,800 trips",
+      "current_congestion": "not specified"
+    }
+  ],
+  "pt_deficiencies": {
+    "coverage": "40% of peripheral residential zones lack any transit stop within an 800-metre walking distance",
+    "frequency": "medium-frequency routes operate with 15-20 min headways, and low-frequency routes in peripheral areas run every 25-40 minutes",
+    "reliability": "not specified",
+    "comfort": "not specified"
+  },
+  "demand_elasticity": {
+    "mode_shift": "target to increase public-transport share from 19% to 50% by the horizon year",
+    "pt_share_target": "50% of total trips"
+  },
+  "data_gaps": [
+    "projected number of trips",
+    "specific details on current public transport reliability and comfort",
+    "detailed information on non-motorised transport infrastructure"
+  ]
+}

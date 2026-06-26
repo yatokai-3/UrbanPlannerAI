@@ -1,0 +1,187 @@
+{
+  "city": "Jaipur",
+  "corridor_solutions": [
+    {
+      "corridor": "Ring Road BRT from Ambabari to Sindhi Camp",
+      "recommended_mode": "BRT",
+      "daily_ridership": 42750,
+      "peak_hour_demand": 5130,
+      "capital_cost_crore": 192.6,
+      "break_even_years": 8.5,
+      "implementation_timeline": "2-4 years",
+      "rationale": "BRT is the most suitable mode for this corridor as its peak capacity of 12000 pphpd comfortably covers the peak-hour demand of 5130. The capital cost of BRT is significantly lower than metro, making it a more cost-effective option. Cycling is not recommended as the primary mode due to its lower peak capacity and lower daily ridership.",
+      "alternatives_rejected": "Metro is rejected due to its high capital cost and oversized capacity. Cycling is rejected due to its lower peak capacity and lower daily ridership."
+    },
+    {
+      "corridor": "Dhani Govindapura to Ambabari",
+      "recommended_mode": "cycling",
+      "daily_ridership": 15000,
+      "peak_hour_demand": 1800,
+      "capital_cost_crore": 15.75,
+      "break_even_years": "Never (operational subsidy needed)",
+      "implementation_timeline": "0.5-2 years",
+      "rationale": "Cycling is the most suitable mode for this corridor as the peak-hour demand is relatively low and can be covered by the peak capacity of cycling. The capital cost of cycling is also significantly lower than BRT and metro, making it a more cost-effective option.",
+      "alternatives_rejected": "BRT and metro are rejected due to their high capital costs and oversized capacities."
+    },
+    {
+      "corridor": "Ambabari to Kanakpura Railway Station via Ajmeer Road",
+      "recommended_mode": "BRT",
+      "daily_ridership": 40400,
+      "peak_hour_demand": 4848,
+      "capital_cost_crore": 399.82,
+      "break_even_years": 19.6,
+      "implementation_timeline": "2-4 years",
+      "rationale": "BRT is the most suitable mode for this corridor as its peak capacity of 12000 pphpd comfortably covers the peak-hour demand of 4848. The capital cost of BRT is significantly lower than metro, making it a more cost-effective option. Cycling is not recommended as the primary mode due to its lower peak capacity and lower daily ridership.",
+      "alternatives_rejected": "Metro is rejected due to its high capital cost and oversized capacity. Cycling is rejected due to its lower peak capacity and lower daily ridership."
+    }
+  ],
+  "citywide_recommendations": "A citywide cycling network should be developed to provide first-last-mile connectivity to the BRT and metro corridors. The BRT corridors should be prioritized for implementation, followed by the development of a comprehensive cycling network.",
+  "assumptions_and_caveats": [
+    "The route lengths and population densities used in the analysis are estimates and may vary in reality.",
+    "The demand projections are based on current trends and may change over time.",
+    "The capital costs and implementation timelines are estimates and may vary depending on various factors such as land acquisition and construction costs."
+  ],
+  "_computed_evidence": [
+    {
+      "corridor": "Ring Road BRT from Ambabari to Sindhi Camp",
+      "origin": "Ambabari",
+      "destination": "Sindhi Camp",
+      "inputs": {
+        "route_length_km": 4.2,
+        "number_of_stops": 4,
+        "population_within_500m": 225000
+      },
+      "length_source": "Nominatim geocode + haversine x1.3 detour",
+      "assumptions": "route length estimated as a typical urban corridor length, assuming 1-1.2 km stop spacing for BRT, and population within 500m calculated using city density (average 12000 people per sq km) and a corridor catchment band of 500m",
+      "mode_evaluations": {
+        "cycling": {
+          "daily_ridership": 26719,
+          "peak_hour_ridership": 3206,
+          "peak_capacity_pphpd": 5000,
+          "capital_cost_crore": 6.62,
+          "annual_opex_crore": 0.04,
+          "annual_revenue_crore": 0.0,
+          "break_even_years": "Never (operational subsidy needed)",
+          "implementation_timeline": "0.5-2 years",
+          "verdict": "VIABLE"
+        },
+        "brt": {
+          "daily_ridership": 42750,
+          "peak_hour_ridership": 5130,
+          "peak_capacity_pphpd": 12000,
+          "capital_cost_crore": 192.6,
+          "annual_opex_crore": 0.73,
+          "annual_revenue_crore": 23.41,
+          "break_even_years": 8.5,
+          "implementation_timeline": "2-4 years",
+          "verdict": "MARGINAL"
+        },
+        "metro": {
+          "daily_ridership": 106875,
+          "peak_hour_ridership": 12825,
+          "peak_capacity_pphpd": 45000,
+          "capital_cost_crore": 1402.5,
+          "annual_opex_crore": 42.0,
+          "annual_revenue_crore": 195.05,
+          "break_even_years": 9.2,
+          "implementation_timeline": "5-8 years",
+          "verdict": "VIABLE"
+        }
+      }
+    },
+    {
+      "corridor": "Dhani Govindapura to Ambabari",
+      "origin": "Dhani Govindapura",
+      "destination": "Ambabari",
+      "inputs": {
+        "route_length_km": 10.0,
+        "number_of_stops": 8,
+        "population_within_500m": 150000
+      },
+      "length_source": "LLM estimate (geocoding unavailable)",
+      "assumptions": "route length estimated as a typical urban corridor length, assuming 1-1.2 km stop spacing, and population within 500m calculated using city density (average 12000 people per sq km) and a corridor catchment band of 500m",
+      "mode_evaluations": {
+        "cycling": {
+          "daily_ridership": 15000,
+          "peak_hour_ridership": 1800,
+          "peak_capacity_pphpd": 5000,
+          "capital_cost_crore": 15.75,
+          "annual_opex_crore": 0.1,
+          "annual_revenue_crore": 0.0,
+          "break_even_years": "Never (operational subsidy needed)",
+          "implementation_timeline": "0.5-2 years",
+          "verdict": "VIABLE"
+        },
+        "brt": {
+          "daily_ridership": 24000,
+          "peak_hour_ridership": 2880,
+          "peak_capacity_pphpd": 12000,
+          "capital_cost_crore": 388.5,
+          "annual_opex_crore": 1.75,
+          "annual_revenue_crore": 13.14,
+          "break_even_years": 34.1,
+          "implementation_timeline": "2-4 years",
+          "verdict": "NOT VIABLE"
+        },
+        "metro": {
+          "daily_ridership": 60000,
+          "peak_hour_ridership": 7200,
+          "peak_capacity_pphpd": 45000,
+          "capital_cost_crore": 2775.0,
+          "annual_opex_crore": 100.0,
+          "annual_revenue_crore": 109.5,
+          "break_even_years": 292.1,
+          "implementation_timeline": "5-8 years",
+          "verdict": "NOT VIABLE"
+        }
+      }
+    },
+    {
+      "corridor": "Ambabari to Kanakpura Railway Station via Ajmeer Road",
+      "origin": "Ambabari",
+      "destination": "Kanakpura Railway Station",
+      "inputs": {
+        "route_length_km": 9.9,
+        "number_of_stops": 10,
+        "population_within_500m": 200000
+      },
+      "length_source": "Nominatim geocode + haversine x1.3 detour",
+      "assumptions": "route length estimated as a typical urban corridor length, assuming 1-1.2 km stop spacing, and population within 500m calculated using city density (average 12000 people per sq km) and a corridor catchment band of 500m",
+      "mode_evaluations": {
+        "cycling": {
+          "daily_ridership": 25250,
+          "peak_hour_ridership": 3030,
+          "peak_capacity_pphpd": 5000,
+          "capital_cost_crore": 15.59,
+          "annual_opex_crore": 0.1,
+          "annual_revenue_crore": 0.0,
+          "break_even_years": "Never (operational subsidy needed)",
+          "implementation_timeline": "0.5-2 years",
+          "verdict": "VIABLE"
+        },
+        "brt": {
+          "daily_ridership": 40400,
+          "peak_hour_ridership": 4848,
+          "peak_capacity_pphpd": 12000,
+          "capital_cost_crore": 399.82,
+          "annual_opex_crore": 1.73,
+          "annual_revenue_crore": 22.12,
+          "break_even_years": 19.6,
+          "implementation_timeline": "2-4 years",
+          "verdict": "NOT VIABLE"
+        },
+        "metro": {
+          "daily_ridership": 101000,
+          "peak_hour_ridership": 12120,
+          "peak_capacity_pphpd": 45000,
+          "capital_cost_crore": 2848.75,
+          "annual_opex_crore": 99.0,
+          "annual_revenue_crore": 184.32,
+          "break_even_years": 33.4,
+          "implementation_timeline": "5-8 years",
+          "verdict": "NOT VIABLE"
+        }
+      }
+    }
+  ]
+}

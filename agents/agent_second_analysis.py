@@ -28,17 +28,18 @@ client = Groq(api_key=GROQ_API_KEY)
 
 
 # Keep each MAP call's evidence well under the per-minute token budget.
-# ~8000 chars ≈ ~2000 tokens of input. gpt-oss is a REASONING model — it spends
+# ~8000 chars ≈ ~2000 tokens of input. gpt-oss is a REASONING model —> it spends
 # completion tokens thinking before emitting JSON, so we leave generous room for
 # output (MAP_MAX_TOKENS) and keep input small so input+output stays under 8k TPM.
 MAP_CHAR_BUDGET = 8000
 MAP_MAX_TOKENS = 4000
 
 # The single REDUCE call must fit input + output under the model's per-request
-# token ceiling (llama-3.3-70b free tier = 12000 TPM). So cap the evidence we
-# send (~28000 chars ≈ ~7000 tokens) and reserve the rest for the JSON output.
-REDUCE_CHAR_BUDGET = 28000
-REDUCE_MAX_TOKENS = 3500
+# token ceiling (llama-3.3-70b free tier = 12000 TPM). We bias toward MORE output
+# room so the analysis is thorough (not "not specified") with slightly less input:
+#   ~28000 chars input (~7000 tokens) + 5000 output ≈ 12000 tokens <= 12000.
+REDUCE_CHAR_BUDGET = 24000
+REDUCE_MAX_TOKENS = 5000
 
 
 # ---------------------------------------------------------------------------
@@ -171,13 +172,32 @@ _TRANSPORT_KEYWORDS = (
     "motorcycle", "rickshaw", "ipt", "fare", "population", "growth", "density",
     "urbanis", "urbaniz", "employment", "lakh", "per day", "km", "flyover",
     "mobility", "station",
+    # coverage / equity / specific infrastructure that keyword-counting often misses
+    "underserved", "peripheral", "slum", "informal", "footpath", "sidewalk",
+    "desire line", "origin", "destination", "bypass", "ring road", "minibus",
 )
 
 
 def _transport_score(fact: str) -> int:
-    """How many transport keywords appear in a fact (0 = likely noise)."""
+    """
+    Score how useful a fact is for transport planning (0 = noise, no keywords).
+
+    Beyond plain keyword count we BOOST facts that carry hard data — numbers,
+    percentages, units — because quantified/specific facts are what the designer
+    needs, and they must survive the budget cut instead of being buried under
+    generic keyword-heavy lines.
+    """
     low = fact.lower()
-    return sum(1 for kw in _TRANSPORT_KEYWORDS if kw in low)
+    base = sum(1 for kw in _TRANSPORT_KEYWORDS if kw in low)
+    if base == 0:
+        return 0  # not transport-relevant
+
+    score = base
+    if re.search(r"\d", fact):                                  # contains a number
+        score += 2
+    if re.search(r"%|\bkm\b|lakh|crore|\bpcu\b|\bmin\b", low):  # explicit units/quantities
+        score += 1
+    return score
 
 
 def select_relevant_facts(fact_strings: list, char_budget: int) -> list:
@@ -217,26 +237,40 @@ _ANALYSIS_PROMPT = '''
     SPECIFIC, QUANTIFIED, and STRUCTURED — not vague prose.
 
     HARD RULES:
-    - DO NOT propose solutions (no metro/BRT recommendations, no cost estimates).
-      Your job is to UNDERSTAND and QUANTIFY the problem only.
-    - USE ONLY the provided evidence. Do NOT invent numbers.
+    - Your job is to UNDERSTAND and QUANTIFY the problem — do NOT recommend a
+      solution or estimate its cost (that is the next agent's job).
+    - Indian figures use lakh/crore — convert carefully; 1 lakh = 0.1 million, 1 crore = 10 million. 
+      Sanity-check: projected population must not exceed ~2× current.
+    - For each number in key_metrics, it must come from a fact in the evidence; 
+      if you cannot find it, write 'not specified.
+    - BUT: proposed/planned projects in the evidence (e.g. a planned BRT corridor
+      "Ambabari to Sindhi Camp, 4,200 trips", or a CMP target "raise PT share
+      19% -> 50%") are DEMAND EVIDENCE. EXTRACT their origin->destination, trip
+      numbers, distances and targets into priority_corridors / future_demand /
+      demand_elasticity. You are recording the demand signal, not endorsing the
+      project. Do NOT discard a fact just because it mentions a proposed project.
+    - USE ONLY the provided evidence. Do NOT invent numbers, but DO compute simple
+      derivations (e.g. daily trips ≈ population × trip-rate) and state the
+      assumption inline.
     - When you state a number, keep its unit, place and year (e.g. "1.2M daily
       trips (2018 CMP)"), not "high demand".
-    - If a needed figure is missing from the evidence, do not guess — list it in
-      "data_gaps". If you must derive a value (e.g. daily trips ≈ population ×
-      trip-rate), state the assumption explicitly in that field.
+    - EXHAUST the evidence before writing "not specified". Only write "not
+      specified" for a field if NO fact in the evidence is even partially
+      relevant — then also add it to "data_gaps". Prefer a partial/approximate
+      answer with its source over "not specified".
 
-    Produce these analyses:
+    Produce these analyses (be thorough — pull every relevant number from evidence):
     - mobility_patterns: how people move today (mode share, peak patterns, key OD pairs, commute times)
     - current_demand: total daily trips, current PT capacity vs demand, who is underserved
-    - future_demand: growth rate and projected trips (5-10 yr), motorization trend
+    - future_demand: growth rate, projected population/trips/trip-length (e.g. 2031/2041), motorization trend
     - capacity_gaps: trips that cannot be served, areas with no PT, worst times
     - bottlenecks: specific congested locations, why, and severity
-    - priority_corridors: rank the top corridors by demand
-    - pt_deficiencies: coverage / frequency / reliability / comfort gaps
-    - demand_elasticity: likely mode shift from private to public transport if PT improves
+    - priority_corridors: rank top corridors by demand. Pull O-D pairs from named
+      roads, desire lines AND proposed metro/BRT corridors in the evidence.
+    - pt_deficiencies: coverage / frequency / reliability / comfort gaps (incl. footpaths, bus-stop density)
+    - demand_elasticity: likely mode shift to PT, incl. any stated PT-share target (e.g. 19% -> 50%)
     - key_metrics: the headline numbers the designer needs, pulled from evidence
-    - data_gaps: important figures that were missing from the evidence
+    - data_gaps: important figures that were genuinely absent from the evidence
 
     Return ONLY valid JSON in EXACTLY this shape:
     {
@@ -314,7 +348,7 @@ if __name__ == "__main__":
 
     analysis_check = run_analyst_agent(facts_crisp)
 
-    with open("agent2_output.json", "w", encoding="utf-8") as f:
+    with open("agent2.1_output.json", "w", encoding="utf-8") as f:
         json.dump(analysis_check, f, indent=2)
 
     print("[OK] Agent 2 output saved to agent2_output.json")

@@ -38,3 +38,5 @@ DEFAULT_CITIES = ["Lucknow", "Delhi", "Odisha"]
 # To REVERT to the full generalized pipeline: set USE_CACHED_AGENT1 = False.
 USE_CACHED_AGENT1 = True
 AGENT1_FACTS_CACHE = "3. FINAL FACTS based on CHUNKS.json"
+# Cached Agent 2 analysis, so Agent 3 can be developed without re-running Agent 2.
+AGENT2_ANALYSIS_CACHE = "agent2.1_output.json"

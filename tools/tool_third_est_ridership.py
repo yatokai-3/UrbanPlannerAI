@@ -12,13 +12,15 @@ def calculate_transit_ridership(
     capture_rate_metro=0.20,
     capture_rate_brt=0.12,
     capture_rate_lrt=0.15,
-    
+    capture_rate_cycling=0.05,  # cycling captures a small share of short corridor trips
+
 
     ## car competition factors for different modes of transport
     ccf_bus=2.0,
     ccf_BRT=1.5,
     ccf_metro=1.0,
-    ccf_LRT=1.3
+    ccf_LRT=1.3,
+    ccf_cycling=1.0   # cycling does not compete with cars for the same trips
 
 
 ) -> dict:
@@ -61,8 +63,11 @@ def calculate_transit_ridership(
     elif mode_type.lower() == 'lrt':
         capture_rate = capture_rate_lrt  # Assuming similar capture rate for BRT and LRT
         ccf = ccf_LRT
+    elif mode_type.lower() == 'cycling':
+        capture_rate = capture_rate_cycling
+        ccf = ccf_cycling
     else:
-        raise ValueError("Invalid mode type. Choose from 'bus', 'metro', 'brt', or 'lrt'.")
+        raise ValueError("Invalid mode type. Choose from 'bus', 'metro', 'brt', 'lrt', or 'cycling'.")
     
 
     ## apply coverage factor and capture rate to estimate ridership
@@ -74,20 +79,32 @@ def calculate_transit_ridership(
 
     ## Peak hour
     peak_hour_ridership = round(adjusted_daily_ridership * 0.12,3)  # Assuming 12% of daily ridership occurs during peak hours
-    
-    
-    return{
-        "stopping_spacing_km": str(average_stop_spacing) + " km/stop",
-        "coverage_factor": str(coverage_factor * 100) + " % of corridor covered", 
-        "trip_on_this_mode": str(trip_on_this_mode) + " daily trips",
-        "estimated/adjusted_daily_ridership": str(adjusted_daily_ridership) + " daily trips",
-        "estimated_peak_hour_ridership": str(peak_hour_ridership) + " peak hour trips"
+
+
+    # Return NUMERIC values (floats/ints) so downstream tools (feasibility) and
+    # the designer agent can consume them directly. The "_display" block keeps
+    # the human-readable strings for printing/debugging.
+    return {
+        "mode": mode_type.lower(),
+        "stop_spacing_km": round(average_stop_spacing, 3),
+        "coverage_factor": coverage_factor,                 # fraction of corridor covered
+        "corridor_total_trips": round(total_trips),
+        "daily_ridership": round(adjusted_daily_ridership), # <- feed this into feasibility
+        "peak_hour_ridership": round(peak_hour_ridership),
+        "_display": {
+            "stop_spacing": f"{round(average_stop_spacing, 2)} km/stop",
+            "coverage": f"{coverage_factor * 100:.0f}% of corridor covered",
+            "daily_ridership": f"{round(adjusted_daily_ridership):,} daily trips",
+            "peak_hour_ridership": f"{round(peak_hour_ridership):,} peak-hour trips",
+        },
     }
 
 
-print(calculate_transit_ridership(
-    route_length_km=48,
-    number_of_stops=37,
-    mode_type='metro',
-    population_within_500m=200000
-))
+if __name__ == "__main__":
+    import json
+    print(json.dumps(calculate_transit_ridership(
+        route_length_km=15.0,
+        number_of_stops=12,
+        mode_type='cycling',
+        population_within_500m=225000
+    ), indent=2))

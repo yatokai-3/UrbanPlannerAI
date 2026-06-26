@@ -26,8 +26,13 @@ TRANSPORT_COSTS = {
         "train_lifespan": 30,           # years
         "fare_per_trip": 50,            # ₹ (average metro fare)
         "peak_capacity_pphpd": 45000,   # persons per hour per direction
+        "implementation_years": {       # PDF: elevated 5-8y, underground 6-10y
+            "elevated": "5-8 years",
+            "underground": "6-10 years",
+            "default": "5-8 years",
+        },
     },
-    
+
     "brt": {
         "capital_cost_per_km": 35,      # ₹20-50, using mid estimate
         "annual_opex_per_km": 0.175,    # ₹0.15-0.2 cr/km/year
@@ -36,13 +41,15 @@ TRANSPORT_COSTS = {
         "bus_lifespan": 10,             # years
         "fare_per_trip": 15,            # ₹ (average BRT fare)
         "peak_capacity_pphpd": 12000,   # persons per hour per direction
+        "implementation_years": "2-4 years",   # PDF: BRT corridor 10-25 km
     },
-    
+
     "cycling": {
         "capital_cost_per_km": 1.5,     # ₹0.3-3, using mid estimate (₹150 lakh)
         "annual_opex_per_km": 0.01,     # ₹5-10 lakh/km/year
         "fare_per_trip": 0,             # Free
         "peak_capacity_pphpd": 5000,    # persons per hour per direction (local trips)
+        "implementation_years": "0.5-2 years",  # PDF: NMT segments
     }
 }
 
@@ -55,7 +62,7 @@ DEFAULT_LIFECYCLE_YEARS = 30
 # Inflation/risk buffer
 CONTINGENCY_FACTOR = 1.05  # 5% contingency
 
-
+import json
 def check_viability(
     mode: str,
     route_length_km: float,
@@ -118,6 +125,11 @@ def check_viability(
         vehicle_cost = buses_needed * costs["bus_cost"]
         total_capex += vehicle_cost
     
+    # ====== IMPLEMENTATION TIMELINE ======
+    timeline = costs["implementation_years"]
+    if isinstance(timeline, dict):               # metro varies by alignment
+        timeline = timeline.get(alignment_type, timeline["default"])
+
     # ====== ANNUAL OPERATING COSTS ======
     annual_opex = route_length_km * costs["annual_opex_per_km"]
     
@@ -185,7 +197,10 @@ def check_viability(
         "ridership_metrics": {
             "daily_ridership": float(daily_ridership),
             "peak_hour_ridership": float(peak_hour_ridership),
+            "mode_peak_capacity_pphpd": costs["peak_capacity_pphpd"],  # for demand-ladder fit
         },
+
+        "implementation_timeline": timeline,
         
         "viability_metrics": {
             "break_even_years": round(break_even_years, 1) if break_even_years != float('inf') else "Never (operational subsidy needed)",
@@ -201,97 +216,101 @@ def check_viability(
 # EXAMPLE USAGE
 # ============================================================
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     
-    print("\n" + "="*70)
-    print("TOOL 2: VIABILITY CHECKER - TEST SCENARIOS")
-    print("="*70)
+#     print("\n" + "="*70)
+#     print("TOOL 2: VIABILITY CHECKER - TEST SCENARIOS")
+#     print("="*70)
     
-    # Scenario 1: Metro corridor with strong ridership
-    print("\n[SCENARIO 1: Proposed Metro on High-Demand Corridor]")
-    print("-" * 70)
-    result1 = check_viability(
-        mode="metro",
-        route_length_km=15,
-        daily_ridership=166667,
-        alignment_type="elevated"
-    )
-    print(f"Mode: {result1['mode'].upper()}")
-    print(f"Route Length: {result1['route_length_km']} km")
-    print(f"Daily Ridership: {result1['ridership_metrics']['daily_ridership']:,}")
-    print(f"Peak Hour: {result1['ridership_metrics']['peak_hour_ridership']:,}")
-    print(f"\nFinancial Summary:")
-    print(f"  Capital Cost: ₹{result1['financial_summary']['capital_cost_crore']} crore")
-    print(f"  Annual OpEx: ₹{result1['financial_summary']['annual_opex_crore']} crore")
-    print(f"  Annual Revenue: ₹{result1['financial_summary']['annual_revenue_crore']} crore")
-    print(f"  Annual Net: ₹{result1['financial_summary']['annual_net_cashflow_crore']} crore")
-    print(f"\nViability:")
-    print(f"  Break-even: {result1['viability_metrics']['break_even_years']} years")
-    print(f"  Annual ROI: {result1['viability_metrics']['annual_roi']}%")
-    print(f"  Verdict: {result1['verdict']}")
-    print(f"  Reasoning: {result1['reasoning']}")
+#     # Scenario 1: Metro corridor with strong ridership
+#     print("\n[SCENARIO 1: Proposed Metro on High-Demand Corridor]")
+#     print("-" * 70)
+#     result1 = check_viability(
+#         mode="metro",
+#         route_length_km=15,
+#         daily_ridership=166667,
+#         alignment_type="elevated"
+#     )
     
-    # Scenario 2: BRT on same corridor
-    print("\n" + "="*70)
-    print("[SCENARIO 2: Proposed BRT on Same Corridor]")
-    print("-" * 70)
-    result2 = check_viability(
-        mode="brt",
-        route_length_km=15,
-        daily_ridership=166667
-    )
-    print(f"Mode: {result2['mode'].upper()}")
-    print(f"Route Length: {result2['route_length_km']} km")
-    print(f"Daily Ridership: {result2['ridership_metrics']['daily_ridership']:,}")
-    print(f"Peak Hour: {result2['ridership_metrics']['peak_hour_ridership']:,}")
-    print(f"\nFinancial Summary:")
-    print(f"  Capital Cost: ₹{result2['financial_summary']['capital_cost_crore']} crore")
-    print(f"  Annual OpEx: ₹{result2['financial_summary']['annual_opex_crore']} crore")
-    print(f"  Annual Revenue: ₹{result2['financial_summary']['annual_revenue_crore']} crore")
-    print(f"  Annual Net: ₹{result2['financial_summary']['annual_net_cashflow_crore']} crore")
-    print(f"\nViability:")
-    print(f"  Break-even: {result2['viability_metrics']['break_even_years']} years")
-    print(f"  Annual ROI: {result2['viability_metrics']['annual_roi']}%")
-    print(f"  Verdict: {result2['verdict']}")
-    print(f"  Reasoning: {result2['reasoning']}")
+#     print(json.dumps(result1,indent=2))
+
+#     print('\n\n\n\n\n\n\n')
+#     print(f"Mode: {result1['mode'].upper()}")
+#     print(f"Route Length: {result1['route_length_km']} km")
+#     print(f"Daily Ridership: {result1['ridership_metrics']['daily_ridership']:,}")
+#     print(f"Peak Hour: {result1['ridership_metrics']['peak_hour_ridership']:,}")
+#     print(f"\nFinancial Summary:")
+#     print(f"  Capital Cost: ₹{result1['financial_summary']['capital_cost_crore']} crore")
+#     print(f"  Annual OpEx: ₹{result1['financial_summary']['annual_opex_crore']} crore")
+#     print(f"  Annual Revenue: ₹{result1['financial_summary']['annual_revenue_crore']} crore")
+#     print(f"  Annual Net: ₹{result1['financial_summary']['annual_net_cashflow_crore']} crore")
+#     print(f"\nViability:")
+#     print(f"  Break-even: {result1['viability_metrics']['break_even_years']} years")
+#     print(f"  Annual ROI: {result1['viability_metrics']['annual_roi']}%")
+#     print(f"  Verdict: {result1['verdict']}")
+#     print(f"  Reasoning: {result1['reasoning']}")
     
-    # Scenario 3: Metro with LOW ridership (should be NOT VIABLE)
-    print("\n" + "="*70)
-    print("[SCENARIO 3: Proposed Metro with LOW Ridership (Reality Check)]")
-    print("-" * 70)
-    result3 = check_viability(
-        mode="metro",
-        route_length_km=15,
-        daily_ridership=30000.0  # Low demand
-    )
-    print(f"Mode: {result3['mode'].upper()}")
-    print(f"Daily Ridership: {result3['ridership_metrics']['daily_ridership']:,}")
-    print(f"\nFinancial Summary:")
-    print(f"  Capital Cost: ₹{result3['financial_summary']['capital_cost_crore']} crore")
-    print(f"  Annual Revenue: ₹{result3['financial_summary']['annual_revenue_crore']} crore")
-    print(f"\nViability:")
-    print(f"  Break-even: {result3['viability_metrics']['break_even_years']} years")
-    print(f"  Verdict: {result3['verdict']}")
-    print(f"  Reasoning: {result3['reasoning']}")
+    # # Scenario 2: BRT on same corridor
+    # print("\n" + "="*70)
+    # print("[SCENARIO 2: Proposed BRT on Same Corridor]")
+    # print("-" * 70)
+    # result2 = check_viability(
+    #     mode="brt",
+    #     route_length_km=15,
+    #     daily_ridership=166667
+    # )
+    # print(f"Mode: {result2['mode'].upper()}")
+    # print(f"Route Length: {result2['route_length_km']} km")
+    # print(f"Daily Ridership: {result2['ridership_metrics']['daily_ridership']:,}")
+    # print(f"Peak Hour: {result2['ridership_metrics']['peak_hour_ridership']:,}")
+    # print(f"\nFinancial Summary:")
+    # print(f"  Capital Cost: ₹{result2['financial_summary']['capital_cost_crore']} crore")
+    # print(f"  Annual OpEx: ₹{result2['financial_summary']['annual_opex_crore']} crore")
+    # print(f"  Annual Revenue: ₹{result2['financial_summary']['annual_revenue_crore']} crore")
+    # print(f"  Annual Net: ₹{result2['financial_summary']['annual_net_cashflow_crore']} crore")
+    # print(f"\nViability:")
+    # print(f"  Break-even: {result2['viability_metrics']['break_even_years']} years")
+    # print(f"  Annual ROI: {result2['viability_metrics']['annual_roi']}%")
+    # print(f"  Verdict: {result2['verdict']}")
+    # print(f"  Reasoning: {result2['reasoning']}")
     
-    # Scenario 4: Cycling (always viable)
-    print("\n" + "="*70)
-    print("[SCENARIO 4: Proposed Cycling Infrastructure (First/Last Mile)]")
-    print("-" * 70)
-    result4 = check_viability(
-        mode="cycling",
-        route_length_km=5,
-        daily_ridership=10000.0
-    )
-    print(f"Mode: {result4['mode'].upper()}")
-    print(f"Route Length: {result4['route_length_km']} km")
-    print(f"Daily Ridership: {result4['ridership_metrics']['daily_ridership']:,}")
-    print(f"\nFinancial Summary:")
-    print(f"  Capital Cost: ₹{result4['financial_summary']['capital_cost_crore']} crore")
-    print(f"  Annual OpEx: ₹{result4['financial_summary']['annual_opex_crore']} crore")
-    print(f"  Annual Revenue: ₹{result4['financial_summary']['annual_revenue_crore']} crore")
-    print(f"\nViability:")
-    print(f"  Verdict: {result4['verdict']}")
-    print(f"  Reasoning: {result4['reasoning']}")
+    # # Scenario 3: Metro with LOW ridership (should be NOT VIABLE)
+    # print("\n" + "="*70)
+    # print("[SCENARIO 3: Proposed Metro with LOW Ridership (Reality Check)]")
+    # print("-" * 70)
+    # result3 = check_viability(
+    #     mode="metro",
+    #     route_length_km=15,
+    #     daily_ridership=30000.0  # Low demand
+    # )
+    # print(f"Mode: {result3['mode'].upper()}")
+    # print(f"Daily Ridership: {result3['ridership_metrics']['daily_ridership']:,}")
+    # print(f"\nFinancial Summary:")
+    # print(f"  Capital Cost: ₹{result3['financial_summary']['capital_cost_crore']} crore")
+    # print(f"  Annual Revenue: ₹{result3['financial_summary']['annual_revenue_crore']} crore")
+    # print(f"\nViability:")
+    # print(f"  Break-even: {result3['viability_metrics']['break_even_years']} years")
+    # print(f"  Verdict: {result3['verdict']}")
+    # print(f"  Reasoning: {result3['reasoning']}")
     
-    print("\n" + "="*70)
+    # # Scenario 4: Cycling (always viable)
+    # print("\n" + "="*70)
+    # print("[SCENARIO 4: Proposed Cycling Infrastructure (First/Last Mile)]")
+    # print("-" * 70)
+    # result4 = check_viability(
+    #     mode="cycling",
+    #     route_length_km=5,
+    #     daily_ridership=10000.0
+    # )
+    # print(f"Mode: {result4['mode'].upper()}")
+    # print(f"Route Length: {result4['route_length_km']} km")
+    # print(f"Daily Ridership: {result4['ridership_metrics']['daily_ridership']:,}")
+    # print(f"\nFinancial Summary:")
+    # print(f"  Capital Cost: ₹{result4['financial_summary']['capital_cost_crore']} crore")
+    # print(f"  Annual OpEx: ₹{result4['financial_summary']['annual_opex_crore']} crore")
+    # print(f"  Annual Revenue: ₹{result4['financial_summary']['annual_revenue_crore']} crore")
+    # print(f"\nViability:")
+    # print(f"  Verdict: {result4['verdict']}")
+    # print(f"  Reasoning: {result4['reasoning']}")
+    
+    # print("\n" + "="*70)
