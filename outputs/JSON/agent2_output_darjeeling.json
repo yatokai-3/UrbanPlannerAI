@@ -1,0 +1,78 @@
+{
+  "city": "Darjeeling",
+  "key_metrics": {
+    "population_current": "2,070,000 (2021)",
+    "population_growth_rate": "not specified",
+    "estimated_daily_trips": "not specified",
+    "current_mode_share": "private vehicles: 53% (2025), public transport: 26.34% (Scenario a), walking: 31%, cycling: 6%",
+    "existing_pt_capacity": "not specified",
+    "pt_demand_gap": "not specified"
+  },
+  "mobility_patterns": {
+    "mode_share": "private vehicles: 53% (2025), public transport: 26.34% (Scenario a), walking: 31%, cycling: 6%",
+    "peak_patterns": "11% to 17% of daily passengers travel during the peak hour (7:00-8:00 a.m.)",
+    "key_od_pairs": "Siliguri-Darjeeling, Darjeeling-Ghum",
+    "commute_times": "not specified"
+  },
+  "current_demand": {
+    "total_daily_trips": "not specified",
+    "current_pt_capacity_vs_demand": "not specified",
+    "underserved": "not specified"
+  },
+  "future_demand": {
+    "growth_rate": "3.7% CAGR for India's overall passenger transport demand up to 2030",
+    "projected_population_trips_trip_length": "population: 2,160,000 (2026), trips: not specified, trip length: 6.26 km (Scenario a), 4.45 km (Scenario b)",
+    "motorization_trend": "increasing, with private vehicle ownership reaching 197 vehicles per 1,000 persons in 2023"
+  },
+  "capacity_gaps": {
+    "trips_that_cannot_be_served": "not specified",
+    "areas_with_no_pt": "not specified",
+    "worst_times": "peak hour (7:00-8:00 a.m.)"
+  },
+  "bottlenecks": [
+    {
+      "location": "Hill Cart Road",
+      "reason": "congestion due to high traffic volume",
+      "severity": "not specified"
+    }
+  ],
+  "priority_corridors": [
+    {
+      "name": "Siliguri-Darjeeling",
+      "origin": "Siliguri",
+      "destination": "Darjeeling",
+      "distance_km": "not specified",
+      "daily_demand": "not specified",
+      "current_congestion": "yes"
+    },
+    {
+      "name": "Darjeeling-Ghum",
+      "origin": "Darjeeling",
+      "destination": "Ghum",
+      "distance_km": "not specified",
+      "daily_demand": "not specified",
+      "current_congestion": "not specified"
+    }
+  ],
+  "pt_deficiencies": {
+    "coverage": "not specified",
+    "frequency": "not specified",
+    "reliability": "not specified",
+    "comfort_gaps": "not specified"
+  },
+  "demand_elasticity": {
+    "likely_mode_shift_to_pt": "not specified",
+    "pt_share_target": "50% (Current Policy Scenario), 60% (Net-Zero Scenario) by 2070"
+  },
+  "data_gaps": [
+    "population growth rate",
+    "estimated daily trips",
+    "existing PT capacity",
+    "PT demand gap",
+    "current demand",
+    "capacity gaps",
+    "bottleneck severity",
+    "priority corridor distances and daily demand",
+    "PT deficiencies"
+  ]
+}

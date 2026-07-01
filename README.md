@@ -31,3 +31,13 @@ Agent 3 (agent_third_design.py) currently has bugs unrelated to this — it uses
 
 Want me to run python main.py to confirm the cached-facts → Agent 2 flow produces a clean agent2_output.json? It'll make ~6 Groq calls and take a few minutes against your quota — your call.
 
+============================================================
+  TOTAL TOKEN USAGE FOR THIS RUN
+============================================================
+  Total LLM calls : 22
+  Prompt tokens   : 49,474
+  Completion tokens: 15,682
+  TOTAL tokens    : 65,156
+  --- per model (each has its own ~100k/day free-tier pool) ---
+    llama-3.3-70b-versatile            65,156 tokens  (22 calls, ~65% of a 100k/day pool)
+============================================================

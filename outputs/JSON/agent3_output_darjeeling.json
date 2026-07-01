@@ -1,0 +1,130 @@
+{
+  "city": "Darjeeling",
+  "corridor_solutions": [
+    {
+      "corridor": "Siliguri-Darjeeling",
+      "recommended_mode": "brt",
+      "daily_ridership": 42000,
+      "peak_hour_demand": 5040,
+      "capital_cost_crore": 1919.1,
+      "break_even_years": 136.7,
+      "implementation_timeline": "2-4 years",
+      "rationale": "BRT is recommended as its peak capacity of 12000 pphpd comfortably covers the peak-hour demand of 5040, and it is the cheapest mode that meets this demand. Metro is oversized with a peak capacity of 45000 pphpd, exceeding the demand, and has a higher capital cost. Cycling has a lower peak capacity of 5000 pphpd, which is insufficient for the demand.",
+      "alternatives_rejected": "Metro is rejected due to its high capital cost and oversized capacity. Cycling is rejected due to its insufficient peak capacity."
+    },
+    {
+      "corridor": "Darjeeling-Ghum",
+      "recommended_mode": "cycling",
+      "daily_ridership": 4550,
+      "peak_hour_demand": 546,
+      "capital_cost_crore": 6.93,
+      "break_even_years": "Never (operational subsidy needed)",
+      "implementation_timeline": "0.5-2 years",
+      "rationale": "Cycling is recommended as the primary mode for this short corridor, given its low peak-hour demand and short route length. BRT and metro are oversized and have higher capital costs, making them less suitable for this corridor.",
+      "alternatives_rejected": "BRT and metro are rejected due to their high capital costs and oversized capacities."
+    }
+  ],
+  "citywide_recommendations": "Implement a citywide cycling network as a feeder system to complement the BRT and metro lines. Consider phasing the implementation of BRT to manage costs and assess demand more accurately. Conduct further studies on population growth, daily trips, and existing transport capacity to inform the plan.",
+  "assumptions_and_caveats": [
+    "Population growth rate and estimated daily trips may affect demand projections.",
+    "Existing public transport capacity may impact the viability of the recommended modes.",
+    "Financial projections for BRT in the Siliguri-Darjeeling corridor are subject to uncertainty.",
+    "Alternative scenarios for demand and financial projections should be considered to strengthen the plan's robustness."
+  ],
+  "_computed_evidence": [
+    {
+      "corridor": "Siliguri-Darjeeling",
+      "origin": "Siliguri",
+      "destination": "Darjeeling",
+      "inputs": {
+        "route_length_km": 51.2,
+        "number_of_stops": 51,
+        "population_within_500m": 210000
+      },
+      "length_source": "Nominatim geocode + haversine x1.3 detour",
+      "assumptions": "route_length_km estimated as typical distance between Siliguri and Darjeeling, number_of_stops calculated assuming 1-1.2 km spacing, population_within_500m estimated using city population density (average 4600 persons per sq km) and a corridor catchment band of 500m",
+      "mode_evaluations": {
+        "cycling": {
+          "daily_ridership": 26250,
+          "peak_hour_ridership": 3150,
+          "peak_capacity_pphpd": 5000,
+          "capital_cost_crore": 80.64,
+          "annual_opex_crore": 0.51,
+          "annual_revenue_crore": 0.0,
+          "break_even_years": "Never (operational subsidy needed)",
+          "implementation_timeline": "0.5-2 years",
+          "verdict": "VIABLE"
+        },
+        "brt": {
+          "daily_ridership": 42000,
+          "peak_hour_ridership": 5040,
+          "peak_capacity_pphpd": 12000,
+          "capital_cost_crore": 1919.1,
+          "annual_opex_crore": 8.96,
+          "annual_revenue_crore": 23.0,
+          "break_even_years": 136.7,
+          "implementation_timeline": "2-4 years",
+          "verdict": "NOT VIABLE"
+        },
+        "metro": {
+          "daily_ridership": 105000,
+          "peak_hour_ridership": 12600,
+          "peak_capacity_pphpd": 45000,
+          "capital_cost_crore": 13740.0,
+          "annual_opex_crore": 512.0,
+          "annual_revenue_crore": 191.62,
+          "break_even_years": "Never (operational subsidy needed)",
+          "implementation_timeline": "5-8 years",
+          "verdict": "NOT VIABLE"
+        }
+      }
+    },
+    {
+      "corridor": "Darjeeling-Ghum",
+      "origin": "Darjeeling",
+      "destination": "Ghum",
+      "inputs": {
+        "route_length_km": 4.4,
+        "number_of_stops": 4,
+        "population_within_500m": 40000
+      },
+      "length_source": "Nominatim geocode + haversine x1.3 detour",
+      "assumptions": "route_length_km estimated as typical distance between Darjeeling and Ghum, number_of_stops calculated assuming 1-1.2 km spacing, population_within_500m estimated using city population density (average 4600 persons per sq km) and a corridor catchment band of 500m",
+      "mode_evaluations": {
+        "cycling": {
+          "daily_ridership": 4550,
+          "peak_hour_ridership": 546,
+          "peak_capacity_pphpd": 5000,
+          "capital_cost_crore": 6.93,
+          "annual_opex_crore": 0.04,
+          "annual_revenue_crore": 0.0,
+          "break_even_years": "Never (operational subsidy needed)",
+          "implementation_timeline": "0.5-2 years",
+          "verdict": "VIABLE"
+        },
+        "brt": {
+          "daily_ridership": 7280,
+          "peak_hour_ridership": 874,
+          "peak_capacity_pphpd": 12000,
+          "capital_cost_crore": 167.7,
+          "annual_opex_crore": 0.77,
+          "annual_revenue_crore": 3.99,
+          "break_even_years": 52.1,
+          "implementation_timeline": "2-4 years",
+          "verdict": "NOT VIABLE"
+        },
+        "metro": {
+          "daily_ridership": 18200,
+          "peak_hour_ridership": 2184,
+          "peak_capacity_pphpd": 45000,
+          "capital_cost_crore": 1205.0,
+          "annual_opex_crore": 44.0,
+          "annual_revenue_crore": 33.22,
+          "break_even_years": "Never (operational subsidy needed)",
+          "implementation_timeline": "5-8 years",
+          "verdict": "NOT VIABLE"
+        }
+      }
+    }
+  ]
+}
