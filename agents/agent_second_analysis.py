@@ -21,6 +21,7 @@ from groq import Groq
 from dotenv import load_dotenv
 load_dotenv()
 import config
+from utils import token_meter
 
 
 GROQ_API_KEY = os.environ["GROQ_API_KEY"]
@@ -57,6 +58,7 @@ def chat_json(messages: list, max_tokens: int) -> dict:
                 response_format={"type": "json_object"},
                 messages=messages,
             )
+            token_meter.record(response)
             return json.loads(response.choices[0].message.content)
         except Exception as e:
             msg = str(e)
@@ -343,14 +345,19 @@ def run_analyst_agent(facts: list) -> dict:
 # Guarding behind __main__ stops a full run from firing on import (e.g. from
 # main.py or test scripts).
 if __name__ == "__main__":
-    with open(config.AGENT1_FACTS_CACHE, "r", encoding="utf-8") as f:
+    import sys
+    # Pick the city whose Agent 1 facts to analyse:  python -m agents.agent_second_analysis Jaipur
+    city = sys.argv[1] if len(sys.argv) > 1 else "Jaipur"
+
+    with open(config.json_path(config.with_city(config.AGENT1_FACTS_CACHE, city)), "r", encoding="utf-8") as f:
         facts_crisp = json.load(f)
 
     analysis_check = run_analyst_agent(facts_crisp)
 
-    with open("agent2.1_output.json", "w", encoding="utf-8") as f:
+    out = config.json_path(config.with_city(config.AGENT2_ANALYSIS_CACHE, city))
+    with open(out, "w", encoding="utf-8") as f:
         json.dump(analysis_check, f, indent=2)
 
-    print("[OK] Agent 2 output saved to agent2_output.json")
+    print(f"[OK] Agent 2 output saved to {out}")
 
 

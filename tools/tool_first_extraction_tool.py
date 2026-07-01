@@ -7,6 +7,7 @@ import time
 import re
 from groq import Groq
 import config
+from utils import token_meter
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -122,6 +123,7 @@ def generate_research_queries(user_query: str) -> dict:
         ]
     )
     
+    token_meter.record(response)
     queries = json.loads(response.choices[0].message.content)
     return queries
 
@@ -129,17 +131,27 @@ def generate_research_queries(user_query: str) -> dict:
 
 
 def extract_city_name(user_query: str) -> str:
-    """Extract city name from user query"""
-    
+    """
+    Extract the bare city name from a query.
+
+    Uses the plain instruct model at temperature 0 so it is DETERMINISTIC — the
+    same query (and same city across different queries) always yields the same
+    name. This matters because the city name becomes the output-filename slug, so
+    Agent 1 (standalone) and main.py must resolve identical names for caching.
+    """
     response = client.chat.completions.create(
-        model=config.LLM_MODEL,
-        temperature=config.LLM_TEMPERATURE,
+        model=config.LLM_JSON_MODEL,   # llama instruct: deterministic, cheap
+        temperature=0,
         messages=[
-            {"role": "system", "content": "Extract ONLY city name. Nothing else."},
+            {"role": "system", "content":
+                "Return ONLY the city name, nothing else. "
+                "No state, no country, no the word 'city', no punctuation. "
+                "Example: input 'reduce congestion in Pune, Maharashtra' -> output 'Pune'."},
             {"role": "user", "content": user_query}
         ]
     )
-    
+
+    token_meter.record(response)
     return response.choices[0].message.content.strip()
 
 
@@ -202,6 +214,7 @@ def extract_key_facts(documents: list) -> list:
                     ]
                 )
 
+                token_meter.record(response)
                 facts = json.loads(response.choices[0].message.content)
 
                 extracted_facts.append({

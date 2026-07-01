@@ -46,6 +46,7 @@ def run_data_collector_agent(user_query: str) -> ResearchStore:
     # Step 2: Extract city name
     print("🏙️ Extracting city name...")
     city_name = extract_city_name(user_query)
+    store.city = city_name   # expose for city-wise output filenames
     print(f"✓ City: {city_name}\n")
     
 
@@ -135,15 +136,27 @@ def run_data_collector_agent(user_query: str) -> ResearchStore:
 # Guarding behind __main__ means importing this module (e.g. from main.py) does
 # NOT trigger a full ~20-min data-collection run.
 if __name__ == "__main__":
-    fir_res = run_data_collector_agent("sustainable plan for Jaipur")
+    import sys
+    import config
 
-    with open("1. ENTIRE TEXT DOCUMENT.json", "w") as f:
+    # Allow a custom query:  python -m agents.agent_first_data_fetcher "plan for Pune"
+    user_query = sys.argv[1] if len(sys.argv) > 1 else "sustainable plan for Jaipur"
+
+    fir_res = run_data_collector_agent(user_query)
+    city = fir_res.city          # already resolved inside Agent 1 — no extra LLM call
+
+    # City-wise filenames so different cities don't overwrite each other.
+    # Two debug dumps (intermediate stages) + the real output (facts), all in Result/JSON/.
+    with open(config.json_path(config.with_city("agent1_documents.json", city)), "w", encoding="utf-8") as f:
         json.dump(fir_res.documents, f, indent=2)
 
-    with open("2. DOCS with FOCUSED CHUNKS ONLY.json", "w") as f:
+    with open(config.json_path(config.with_city("agent1_focused_docs.json", city)), "w", encoding="utf-8") as f:
         json.dump(fir_res.focused_docs, f, indent=2)
 
-    with open("3. FINAL FACTS based on CHUNKS.json", "w") as f:
+    out = config.json_path(config.with_city("agent1_output.json", city))   # facts = Agent 1's real output
+    with open(out, "w", encoding="utf-8") as f:
         json.dump(fir_res.facts, f, indent=2)
+
+    print(f"[OK] Agent 1 saved city-wise outputs for '{city}' -> {out} (+ documents, focused_docs)")
 
 

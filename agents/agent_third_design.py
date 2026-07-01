@@ -27,6 +27,7 @@ import config
 from tools.tool_third_est_ridership import calculate_transit_ridership
 from tools.tool_third_feasibility import check_viability
 from tools.tool_third_geo import get_corridor_length
+from utils import token_meter
 
 
 client = Groq(api_key=os.environ["GROQ_API_KEY"])
@@ -54,6 +55,7 @@ def chat_json(messages: list, max_tokens: int) -> dict:
                 response_format={"type": "json_object"},
                 messages=messages,
             )
+            token_meter.record(response)
             return json.loads(response.choices[0].message.content)
         except Exception as e:
             msg = str(e)
@@ -192,6 +194,10 @@ _DESIGN_PROMPT = """
     - BRT    : medium demand (~5,000-20,000 pphpd), far cheaper & faster than metro
     - cycling: short trips / first-last-mile feeder, not a mass-transit line-haul
 
+    REVISION ROUNDS: if the input contains "critic_feedback_to_address", this is a
+    re-design. You MUST directly act on its revision_instructions and weaknesses
+    (e.g. switch an oversized metro to BRT, adjust phasing) and keep the rest.
+
     HOW TO READ THE VERDICT (important):
     - "break_even_years" and the verdict are FAREBOX cost-recovery indicators only.
       Public transit rarely recovers its capital from fares and is normally
@@ -235,10 +241,16 @@ _DESIGN_PROMPT = """
 """
 
 
-def run_solution_design_agent(analysis: dict) -> dict:
+def run_solution_design_agent(analysis: dict, critique: dict = None) -> dict:
     """
     Agent 3: turn Agent 2's analysis into a costed transport plan.
     STEP 1 (LLM) size corridors -> STEP 2 (Python) run tools -> STEP 3 (LLM) prescribe.
+
+    Args:
+        analysis: Agent 2 output.
+        critique: (optional) Agent 4's feedback from a previous round. When given,
+                  STEP 3 must address its revision_instructions — this is what makes
+                  the 3<->4 loop converge.
     """
     # STEP 1 — engineer the inputs
     sized = estimate_corridor_parameters(analysis)
@@ -267,10 +279,19 @@ def run_solution_design_agent(analysis: dict) -> dict:
 
     # STEP 3 — synthesis / prescription
     print("  [designer] STEP 3: recommending modes and writing the plan...")
+    user_payload = {"city": sized.get("city"), "corridor_evaluations": evaluated}
+    if critique:
+        # Revision round: address the critic's feedback from the previous loop.
+        print("  [designer] incorporating critic feedback (revision round)")
+        user_payload["critic_feedback_to_address"] = {
+            "revision_instructions": critique.get("revision_instructions", ""),
+            "key_weaknesses": critique.get("key_weaknesses", []),
+            "improvement_suggestions": critique.get("improvement_suggestions", []),
+        }
     plan = chat_json(
         messages=[
             {"role": "system", "content": _DESIGN_PROMPT},
-            {"role": "user", "content": json.dumps({"city": sized.get("city"), "corridor_evaluations": evaluated})},
+            {"role": "user", "content": json.dumps(user_payload)},
         ],
         max_tokens=4000,
     )
@@ -283,12 +304,16 @@ def run_solution_design_agent(analysis: dict) -> dict:
 # Run Agent 3 standalone using the cached Agent 2 analysis (no re-running Agent 2):
 #   python -m agents.agent_third_design
 if __name__ == "__main__":
-    with open(config.AGENT2_ANALYSIS_CACHE, "r", encoding="utf-8") as f:
+    import sys
+    city = sys.argv[1] if len(sys.argv) > 1 else "Jaipur"
+
+    with open(config.json_path(config.with_city(config.AGENT2_ANALYSIS_CACHE, city)), "r", encoding="utf-8") as f:
         analysis_input = json.load(f)
 
     design = run_solution_design_agent(analysis_input)
 
-    with open("agent3.1_output.json", "w", encoding="utf-8") as f:
+    out = config.json_path(config.with_city("agent3_output.json", city))
+    with open(out, "w", encoding="utf-8") as f:
         json.dump(design, f, indent=2)
 
-    print("[OK] Agent 3 output saved to agent3_output.json")
+    print(f"[OK] Agent 3 output saved to {out}")

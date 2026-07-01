@@ -24,9 +24,40 @@ LLM_MAX_FACT_TOKENS = 4000
 # How many times to retry a single doc after a 429 rate-limit error
 LLM_MAX_RETRIES = 5
 
-# File Paths
+# ---- Output locations ----
+# JSON artifacts go in outputs/JSON/, reports (md/pdf) go in outputs/.
 OUTPUT_DIR = "outputs"
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+JSON_DIR = os.path.join(OUTPUT_DIR, "JSON")
+os.makedirs(JSON_DIR, exist_ok=True)
+
+
+def city_slug(city: str) -> str:
+    """
+    Normalise a city name into a stable filename slug, tolerant of small wording
+    differences so caching is robust:
+      'Jaipur' / 'Jaipur City' / 'Jaipur, Rajasthan' -> 'jaipur'
+    """
+    name = (city or "city").strip().lower()
+    name = name.split(",")[0]            # drop ", Rajasthan" / ", India"
+    name = name.replace(" city", "")     # drop a trailing "city" qualifier
+    s = "".join(c if c.isalnum() else "_" for c in name)
+    return s.strip("_") or "city"
+
+
+def with_city(filename: str, city: str) -> str:
+    """'agent1_output.json' + 'Jaipur' -> 'agent1_output_jaipur.json'."""
+    base, ext = os.path.splitext(filename)
+    return f"{base}_{city_slug(city)}{ext}"
+
+
+def json_path(filename: str) -> str:
+    """Full path for a JSON artifact inside outputs/JSON/."""
+    return os.path.join(JSON_DIR, filename)
+
+
+def report_path(filename: str) -> str:
+    """Full path for a report (md/pdf) inside outputs/."""
+    return os.path.join(OUTPUT_DIR, filename)
 
 # City Data
 DEFAULT_CITIES = ["Lucknow", "Delhi", "Odisha"]
@@ -37,6 +68,11 @@ DEFAULT_CITIES = ["Lucknow", "Delhi", "Odisha"]
 # saved facts from AGENT1_FACTS_CACHE instead.
 # To REVERT to the full generalized pipeline: set USE_CACHED_AGENT1 = False.
 USE_CACHED_AGENT1 = True
-AGENT1_FACTS_CACHE = "3. FINAL FACTS based on CHUNKS.json"
-# Cached Agent 2 analysis, so Agent 3 can be developed without re-running Agent 2.
-AGENT2_ANALYSIS_CACHE = "agent2.1_output.json"
+AGENT1_FACTS_CACHE = "agent1_output.json"
+# Cached Agent 2 analysis, so Agents 3-5 can be developed without re-running Agent 2.
+USE_CACHED_AGENT2 = False
+AGENT2_ANALYSIS_CACHE = "agent2_output.json"
+
+# Max designer<->critic revision rounds before proceeding with the last plan.
+# Each round costs ~2 LLM calls — keep small on the free tier.
+MAX_DESIGN_ROUNDS = 3
