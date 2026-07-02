@@ -7,9 +7,15 @@ deterministic engineering models, subjects them to an automated critical review,
 and produces a professional PDF report.
 
 Example:
-
+The city (pune) mentioned in main.py, its only purpose to help save the output files with <_city> name.
+The two step run is recommended so that, GROQ free tier API limit of 100,000 TPD (token/day), won't flush all at once.
 ```
-python main.py "Reduce traffic congestion in Jaipur"
+# Stage A: collect data (Agent 1, gpt-oss pool)
+python -m agents.agent_first_data_fetcher "plan for Pune"
+
+# Stage B: set USE_CACHED_AGENT1 = True, then run the rest (llama pool)
+python main.py "Pune"
+
 ```
 
 produces `outputs/transport_plan_jaipur.pdf`.
