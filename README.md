@@ -20,18 +20,9 @@ The system runs a five-agent pipeline. Agents 3 and 4 form a bounded revision lo
 (the critic returns the plan to the designer until it is approved or a round cap is
 reached).
 
-```
-        query
-          |
-   [1] Data Collector   research the city -> structured facts
-          |
-   [2] Analyst          facts -> quantified demand analysis
-          |
-   [3] Designer  <---->  [4] Critic          design <-> review loop
-          |                                  (until APPROVED / MAX_DESIGN_ROUNDS)
-          |
-   [5] Reporter         approved plan -> Markdown + PDF
-```
+
+<img width="2728" height="1759" alt="floww" src="https://github.com/user-attachments/assets/93673042-02f1-43f2-b81b-d10078cbcb18" />
+
 
 | Agent | File | Role | LLM/Tools |
 | --- | --- | --- | --- |
